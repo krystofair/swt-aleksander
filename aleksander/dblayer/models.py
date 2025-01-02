@@ -1,31 +1,33 @@
 """
     Here you find models for tables in db.
 """
+from typing import List, Optional
+from datetime import datetime
 
-from sqlalchemy import declarative_base
-from sqlalchemy import Column
-from sqlalchemy import ForeignKey
-from sqlalchemy import Sequence
-from sqlalchemy import Integer
-from sqlalchemy import Float
-from sqlalchemy import String
-from sqlalchemy import DateTime
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.orm import relationship
-from sqlalchemy.schema import MetaData
+from sqlalchemy.orm import (
+    relationship,
+    mapped_column,
+    Mapped,
+    DeclarativeBase,
+)
 
 
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
+
 
 class Match(Base):
     __tablename__ = "matches"
     id = Column(Integer, Sequence('match_id'), primary_key=True)
+    when: Mapped(datetime)
     when = Column(DateTime)
     country = Column(String)
     stadium = Column(String)
     home = Column(String)
     away = Column(String)
     referee = Column(String)
+    statistics: Mapped[List["Statistic"]] = relationship(back_populates='match')
+
 
 class Statistic(Base):
     __tablename__ = "statistics"
