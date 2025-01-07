@@ -10,6 +10,15 @@ from sqlalchemy.orm import (
     Mapped,
     DeclarativeBase,
 )
+from sqlalchemy import (
+    Column,
+    Integer,
+    Float,
+    String,
+    Sequence,
+    DateTime,
+    ForeignKey
+)
 
 
 class Base(DeclarativeBase):
@@ -19,7 +28,6 @@ class Base(DeclarativeBase):
 class Match(Base):
     __tablename__ = "matches"
     id = Column(Integer, Sequence('match_id'), primary_key=True)
-    when: Mapped(datetime)
     when = Column(DateTime)
     country = Column(String)
     stadium = Column(String)
@@ -31,8 +39,10 @@ class Match(Base):
 
 class Statistic(Base):
     __tablename__ = "statistics"
+    id: Mapped[int] = mapped_column(primary_key=True)
     match_id = Column(Integer, ForeignKey('matches.id'))
-    name = Column(String)  # TODO: this field should have index
+    name = Column(String)
     home = Column(Float)
     away = Column(Float)
 
+__all__ = ["Match", "Statistic"]

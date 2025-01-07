@@ -1,6 +1,10 @@
-subscriber:
-  sockets:
-    - topic: flashscore.html
-      sockopts:
-        - high water mark but now dont know how.
-    - topic: flashscore.stream
+subscribers:
+  - topic: footystats
+    sockopts:
+      - XXX high water mark set here for example
+  - topic: flashscore
+    sockopts:
+      -
+chooser:
+  - topic: flashscore.*
+    processor: flahscore
