@@ -1,12 +1,13 @@
-
+""" ... """
 import hydra
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
-from dblayer import config
+from . import configs
 
-@hydra.main(version_base=None, config_path="../configs", config_name='config')
-def main(cfg: config.Config):
+
+@hydra.main(version_base=configs.VERSION_BASE, config_path="configs", config_name="databases")
+def main(cfg: configs.Config):
 	co = OmegaConf.to_container(cfg)
 	conn = instantiate(cfg.db)
 	print(conn)

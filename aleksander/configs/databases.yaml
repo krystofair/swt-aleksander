@@ -9,11 +9,3 @@ db:
     user: postgres
     password: usmiechnieci123
 # docker uruchomiony z takim hasłem.
-
-alembic:
-  autogenerate: False
-  message: empty message
-  prepend_sys_path: .
-  script_location: alembic
-  version_path_separator: os
-  sqlalchemy.url: ""
