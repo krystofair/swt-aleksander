@@ -1,29 +1,51 @@
+import abc
 from dataclasses import dataclass
 
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
+import hydra
+from sqlalchemy import create_engine, Engine
 
 from .models import *
+from .. import configs
 
-class DBConnection:
+VERSION_BASE = "1.1"
 
+
+class DbMgr:
+
+    def __init__(self, db_to_use):
+        self._cfg = self._configure()
+        self.db_connection: DbConn = hydra.utils.instantiate(self._cfg.get(db_to_use))
+        self.engine: Engine = create_engine(self.db_connection.connstr())
+
+    def _configure(self):
+        """
+            Loads configuration from yaml file by hydra.
+        """
+        with hydra.initialize(version_base=VERSION_BASE, config_path="../configs"):
+            cfg: configs.DbConfig = hydra.compose(config_name="db")  # type: ignore
+        if not cfg:
+            raise ValueError("Failure of loading configuration for database.")
+        return cfg
+
+    @property
+    def eng(self):
+        return self.engine
+
+
+class DbConn(abc.ABC):
     def connstr(self) -> str:
-        return ""
-    
-    def engine(self) -> Engine:
-        return create_engine(self.connstr())
-
-
-class SqliteConnection(DBConnection):
-
-    def __init__(self, path) -> None:
-        self.path = path
-
-    def connstr(self) -> str:
-        return "sqlite+pysqlite://{}".format(self.path, self.db)
+        pass
 
 @dataclass
-class PostgreSQLConnection(DBConnection):
+class SqliteConnection(DbConn):
+    path: str
+
+    def connstr(self) -> str:
+        return "sqlite:///{}".format(self.path)
+
+
+@dataclass
+class PostgreSQLConnection(DbConn):
     host: str
     port: int
     user: str

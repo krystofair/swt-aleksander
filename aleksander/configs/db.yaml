@@ -1,0 +1,11 @@
+postgresql:
+  _target_: aleksander.dblayer.PostgreSQLConnection
+  dbname: swtdb
+  host: localhost
+  port: 5432
+  user: postgres
+  password: usmiechnieci123
+
+sqlite:
+  _target_: aleksander.dblayer.SqliteConnection
+  path: ":memory:"

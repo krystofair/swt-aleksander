@@ -24,12 +24,10 @@ class RedisConfig:
     cache: RedisInstance = RedisInstance("locahost", 6379)
     broker: RedisInstance = RedisInstance("localhost", 4602)
 
-
 @dataclass
 class SqliteConfig:
-    _target_: str = "aleksander.dblayer.SqliteConnection"
-    path: str = ":memory:"
-
+    _target_: str
+    path: str
 
 @dataclass
 class PostgresConfig:
@@ -40,16 +38,12 @@ class PostgresConfig:
     password: str = "password"
     dbname: str = "db"
 
-
-@dataclass
-class Config:
-    defaults: List[Any] = field(default_factory=lambda: [{"db": "sqlite"}])
+class DbConfig:
     db = conf.MISSING
 
 
-# nie wiem jak z tym konfigiem tutaj.
-# cfg_store = conf.ConfigStore.instance()
-# cfg_store.store(name="config", node=Config)
-# cfg_store.store(group="db", name="sqlite", node=SqliteConfig)
-# cfg_store.store(group="db", name="postgresql", node=PostgresConfig)
-# cfg_store.store(group="redis", node=RedisConfig)
+# @dataclass
+# class Config:
+#     sockets: dict
+#     processors: dict
+
