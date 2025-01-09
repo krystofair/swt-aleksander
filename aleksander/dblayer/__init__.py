@@ -53,7 +53,7 @@ class PostgreSQLConnection(DbConn):
     dbname: str
 
     def connstr(self) -> str:
-        return ("postgres://{user}:{passwd}@{host}:{port}/{db_name}"
+        return ("postgresql://{user}:{passwd}@{host}:{port}/{db_name}"
             .format(
                 user = self.user,
                 passwd = self.password,

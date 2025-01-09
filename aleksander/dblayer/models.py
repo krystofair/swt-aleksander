@@ -1,15 +1,8 @@
 """
     Here you find models for tables in db.
 """
-from typing import List, Optional
-from datetime import datetime
+from typing import List
 
-from sqlalchemy.orm import (
-    relationship,
-    mapped_column,
-    Mapped,
-    DeclarativeBase,
-)
 from sqlalchemy import (
     Column,
     Integer,
@@ -18,6 +11,12 @@ from sqlalchemy import (
     Sequence,
     DateTime,
     ForeignKey
+)
+from sqlalchemy.orm import (
+    relationship,
+    mapped_column,
+    Mapped,
+    DeclarativeBase,
 )
 
 
@@ -44,5 +43,6 @@ class Statistic(Base):
     name = Column(String)
     home = Column(Float)
     away = Column(Float)
+    match = relationship(Match)
 
 __all__ = ["Match", "Statistic"]

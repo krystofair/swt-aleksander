@@ -1,8 +1,8 @@
 postgresql:
   _target_: aleksander.dblayer.PostgreSQLConnection
-  dbname: swtdb
-  host: localhost
-  port: 5432
+  dbname: postgres
+  host: 127.0.0.1
+  port: 35777
   user: postgres
   password: usmiechnieci123
 

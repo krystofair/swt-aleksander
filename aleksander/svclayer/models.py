@@ -16,7 +16,7 @@ class Service(Task):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        with hydra.initialize(version_base=VERSION_BASE, config_path='configs'):
+        with hydra.initialize(version_base=VERSION_BASE, config_path='../configs'):
             use_database: str = hydra.compose(config_name='config').get('db')
 
         self.db = DbMgr(use_database)

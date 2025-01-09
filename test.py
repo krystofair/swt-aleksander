@@ -1,14 +1,14 @@
 import datetime
-import unittest
 import subprocess
-
-from aleksander.clustering import RedisCache, ClusterService
-from aleksander.domain import StrId, Statistic, MatchId
-from aleksander import configs, dblayer
+import unittest
 
 from omegaconf import OmegaConf
-import hydra
-from hydra import conf
+from sqlalchemy.orm import Session
+
+from aleksander import dblayer, svclayer
+from aleksander.clustering import RedisCache, ClusterService
+from aleksander.domain import StrId, Statistic, MatchId
+from aleksander.svclayer import models as svclayer_models
 
 
 class RedisConfigurationTest(unittest.TestCase):
@@ -18,6 +18,7 @@ class RedisConfigurationTest(unittest.TestCase):
         rc = RedisCache()
         assert rc.config.cache.host == "127.0.0.1", rc.config.cache.host
         assert rc.config.cache.port == 6379
+
 
 class ClusteringTest(unittest.TestCase):
     @classmethod
@@ -47,11 +48,14 @@ class ClusteringTest(unittest.TestCase):
         cd.sign_match_as_processed(match_id)
         assert cd.is_match_already_processed(match_id) == True, 'match was not processed'
 
+
 class TestDomain(unittest.TestCase):
     def test_StrId_descriptor(self):
         generated = StrId.gen_id()
+
         class T:
             identity = StrId(generated)
+
         t = T()
         assert t.identity == generated
         # changing type tu string, with encoding UTF8
@@ -69,6 +73,7 @@ class TestDomain(unittest.TestCase):
         assert stat2.name == 'przydluga-nazwa-ze-spacjami'
         assert stat2.typename() == 'Stat:przydluga-nazwa-ze-spacjami'
 
+
 class TestDatabaseConfiguration(unittest.TestCase):
     def test_loading_configuration(self):
         mgr = dblayer.DbMgr("sqlite")
@@ -77,28 +82,29 @@ class TestDatabaseConfiguration(unittest.TestCase):
 
 class TestServiceLayer(unittest.TestCase):
     def setUp(self):
-        # create test database
-        # run docker with redis cache.
+        # TODO: preparation test database for do it full automatically.
         pass
 
     def test_get_access_to_db(self):
-        from aleksander.svclayer import service_layer_app, Service
-        from aleksander.dblayer.models import Match
-        @service_layer_app.task(bind=True)
-        def test_task(base: Service):
-            m = Match(when=datetime.datetime(2023,8,1,18,0),
-                      country="poland",
-                      stadium="narodowy",
-                      home='Polska',
-                      away="Szkocja",
-                      referee="sad man")
-            with base.db.engine().connect().begin() as transaction:
+        @svclayer.service_layer_app.task(bind=True)
+        def example_task(base: svclayer_models.Service):
+            try:
+                m = dblayer.models.Match(when=datetime.datetime(2023, 8, 1, 18, 0),
+                                         country="poland",
+                                         stadium="narodowy",
+                                         home='Polska',
+                                         away="Szkocja",
+                                         referee="sad man")
+                with Session(base.db.eng) as session:
+                    session.add(m)
+                    session.commit()
+            except Exception as e:
+                return str(e)
 
-                transaction.commit()
+            return 'koniec'
 
-            print('test')
-        test_task.apply_local()
+        result = example_task.apply()
+        assert result.result == 'koniec'
 
     def test_get_access_to_cache(self):
         pass
-
