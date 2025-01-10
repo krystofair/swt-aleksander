@@ -1,13 +1,14 @@
 import datetime
+import importlib
 import subprocess
 import unittest
 
 from omegaconf import OmegaConf
 from sqlalchemy.orm import Session
 
-from aleksander import dblayer, svclayer
+from aleksander import dblayer, svclayer, processing
 from aleksander.clustering import RedisCache, ClusterService
-from aleksander.domain import StrId, Statistic, MatchId
+from aleksander.models import StrId, Statistic, MatchId
 from aleksander.svclayer import models as svclayer_models
 
 
@@ -71,7 +72,17 @@ class TestDomain(unittest.TestCase):
         stat2 = Statistic("mpid2", "Przydluga nazwa Ze spacjami", 1, 2)
         # working about slug converter
         assert stat2.name == 'przydluga-nazwa-ze-spacjami'
-        assert stat2.typename() == 'Stat:przydluga-nazwa-ze-spacjami'
+        assert stat2.typename() == 'stat:przydluga-nazwa-ze-spacjami'
+
+    def test_processors_registry(self):
+        # test is integrated with processing module test task
+        registry = processing.reg
+        entry = registry.select("https://test.org/match/1231231")
+        assert entry is None
+        entry = registry.select("https://9532d4f0-077e-4e57-97f1-6022ced75124/match/1231231")
+        assert entry.model == processing.TestObj
+        assert entry.task('message') == 'message'
+
 
 
 class TestDatabaseConfiguration(unittest.TestCase):

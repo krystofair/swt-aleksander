@@ -116,7 +116,7 @@ class Statistic(AbstractObject):
         return cls()
 
     def typename(self) -> ObjectType:
-        return ObjectType(f"Stat:{self.name}")
+        return ObjectType(f"stat:{self.name}")
 
     def json(self) -> str:
         """Returns self as json string"""
@@ -136,8 +136,7 @@ class Match(AbstractMatch):
 
     def json(self) -> str:
         """Returns fields in json format."""
-        # TODO:
-        return asdict(self)
+        return str(asdict(self))
 
     def __str__(self):
         return self.json()

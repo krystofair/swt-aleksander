@@ -1,7 +1,7 @@
 """
     Services
     --------
-    Celery's tasks as high level services. This special celery app is defined
+    Celery's tasks as high level services. This special celery main_app is defined
     in __init__ of this module.
 """
 from . import service_layer_app

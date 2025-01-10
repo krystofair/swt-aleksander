@@ -1,11 +1,15 @@
 db: postgresql
-sockets:
+publisher:
+  host: 127.0.0.1
+  port: 43211
+subscribers:
   - topic: footystats
     sockopts:
       - XXX high water mark set here for example
+      - option2
   - topic: flashscore
-    sockopts:
-      -
 processors:
   - topic: flashscore.*
     module: flashscore
+    url-regex: ....
+    task: ...

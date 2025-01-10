@@ -42,8 +42,14 @@ class DbConfig:
     db = conf.MISSING
 
 
-# @dataclass
-# class Config:
-#     sockets: dict
-#     processors: dict
+@dataclass
+class MainSocketCfg:
+    topic: str
+    sockopts: list[str]
+
+
+@dataclass
+class MainConfig:
+    sockets: dict
+    processors: dict
 

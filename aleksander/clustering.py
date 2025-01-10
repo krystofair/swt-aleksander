@@ -5,7 +5,8 @@ from typing import Any
 import hydra
 import redis
 
-from . import configs, domain
+# . here is aleksander - application module!
+from . import configs, models
 
 VERSION_BASE = "1.1"
 
@@ -56,7 +57,7 @@ class ClusterService:
         """
         self.cache = cache.instance()
 
-    def is_match_already_processed(self, match_id: domain.MatchId) -> bool:
+    def is_match_already_processed(self, match_id: models.MatchId) -> bool:
         """
             Returns True if specified match was processed before, False otherwise.
             Arguments:
@@ -64,7 +65,7 @@ class ClusterService:
         """
         return self.is_match_have_that_object(match_id, 'match')
 
-    def sign_match_as_processed(self, match_id: domain.MatchId) -> None:
+    def sign_match_as_processed(self, match_id: models.MatchId) -> None:
         """
             Save id for being recgonized in the future.
         """
@@ -72,7 +73,7 @@ class ClusterService:
         # when I implement class type for match_id.
         self.add_object_type_of_match(str(match_id), 'match')
 
-    def is_match_have_that_object(self, match_id: domain.MatchId, object_type: str) -> bool:
+    def is_match_have_that_object(self, match_id: models.MatchId, object_type: str) -> bool:
         """
             Download match object and check if there is this kind of object as 'loaded'.
         """
@@ -86,11 +87,11 @@ class ClusterService:
         ot = object_type.encode('utf-8')
         self.cache.lpush(match_portal_id, ot)
 
-    def match_portal_id_with_domain(self, match_portal_id) -> domain.MatchId:
+    def match_portal_id_with_domain(self, match_portal_id) -> models.MatchId:
         """
             Returns match_id if exist for specified match_portal_id.
         """
-        return domain.MatchId(self.cache.get(match_portal_id))
+        return models.MatchId(self.cache.get(match_portal_id))
 
     def bind_match_portal_id_to_domain(self, match_portal_id, match_id) -> None:
         self.cache.set(match_portal_id, match_id)

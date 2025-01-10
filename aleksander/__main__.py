@@ -6,13 +6,9 @@ from omegaconf import OmegaConf
 from . import configs
 
 
-@hydra.main(version_base=configs.VERSION_BASE, config_path="configs", config_name="databases")
-def main(cfg: configs.Config):
-	co = OmegaConf.to_container(cfg)
-	conn = instantiate(cfg.db)
-	print(conn)
-	print(co)
-	print(f"{type(conn)=}")
+@hydra.main(version_base=configs.VERSION_BASE, config_path="configs", config_name="config")
+def main(cfg: configs.MainConfig):
+	print('dzien dobry')
 
 if __name__ == "__main__":
 	main()
