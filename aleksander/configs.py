@@ -11,10 +11,9 @@ from hydra import conf
 
 from attrs import define, field
 
-
-log = logging.getLogger(__name__)
-
 VERSION_BASE = "1.1"
+LOG_LEVEL = logging.DEBUG
+
 
 @define(frozen=True)
 class RedisInstance:
@@ -63,4 +62,3 @@ class MainConfig:
     db: str
     publisher: Publisher
     services: list[ServicesEntry]
-

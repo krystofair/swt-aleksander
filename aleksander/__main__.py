@@ -1,8 +1,10 @@
 """ ... """
 import logging
 import asyncio
+import sys
 
 import hydra
+import celery.exceptions as celery_exc
 from omegaconf import OmegaConf
 import zmq
 import zmq.asyncio
@@ -11,12 +13,15 @@ from . import configs, services, app
 
 
 #: Initialize hydra configuration globally here, because not work with asyncio.
-hydra.initialize(version_base=configs.VERSION_BASE, config_path="configs")
-CONFIG: configs.MainConfig = hydra.compose(config_name="config")  # type: ignore
+with hydra.initialize(version_base=configs.VERSION_BASE, config_path="configs"):
+	CONFIG: configs.MainConfig = hydra.compose(config_name="config")  # type: ignore
 
-#: Initialize log
+#: Initialize logging
+logging.basicConfig()
+#: Initialize logger
 log = logging.getLogger("aleksander")
-log.setLevel(logging.INFO)
+log.setLevel(configs.LOG_LEVEL)
+
 
 async def main(cfg: configs.MainConfig):
 	log.info(OmegaConf.to_yaml(cfg))
@@ -24,19 +29,33 @@ async def main(cfg: configs.MainConfig):
 	sockets = dict()
 	for service in cfg.services:
 		s: zmq.Socket = zmq_ctx.socket(zmq.SUB)
+		s.connect(f"tcp://{cfg.publisher.host}:{cfg.publisher.port}")
 		s.subscribe(service.topic)
 		sockets[s] = service.name
+		log.info(f"Set socket {s} to service name {sockets[s]}")
 	while True:
-		for sock in sockets.keys():
-			msg = await sock.recv_multipart()
-			if msg:
-				task: services.Service = app.ResponseService.get_task(services.app, sockets[sock])
+		rs, ws, xs = zmq.select(rlist = list(sockets.keys()), wlist=[], xlist=[])
+		try:
+			for socket in rs:
+				log.debug(f"Socket {socket} processing")
+				task: services.Service = app.ResponseService.find_service(services.app, sockets[socket])
+				log.debug(f"Task found: {task.name}")
 				if task:
-					_, url, body = app.ResponseService.decode_message(msg)
-					task.apply_async(url, body)
+					msg = await socket.recv()
+					log.debug(msg[:79])
+					topic, url, body = app.ResponseService.decode_message(msg)
+					if topic:
+						_ = task.apply_async(args=(url, body))  # discard result, there is no backend for results.
+						log.debug(f"Sent {url} to workers")
 				else:
 					# TODO: inform admin about wrong configuration somehow.
 					log.error("Task cannot be find.")
+		except celery_exc.InvalidTaskError as e:
+			log.error(e)
+		except Exception as e:
+			*info, traceback = sys.exc_info()
+			log.error(info)
+			log.error(e.with_traceback(traceback))
 
 
 if __name__ == "__main__":

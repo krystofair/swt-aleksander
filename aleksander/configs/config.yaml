@@ -7,7 +7,7 @@ publisher:
 # name of the service for specific topic
 # semantic of data is divided by topic
 services:
-  - name: match_processing
+  - name: health_check
     topic: footystats
   - name: health_check
     topic: health
