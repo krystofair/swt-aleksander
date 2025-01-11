@@ -8,7 +8,7 @@ publisher:
 # semantic of data is divided by topic
 services:
   - name: match_processing
-  - topic: footystats
+    topic: footystats
     sockopts:
       - XXX high water mark set here for example
       - option2

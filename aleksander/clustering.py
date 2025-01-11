@@ -1,14 +1,12 @@
-from typing import TypeVar
-from typing import Any
-
+"""
+    Module with correlation responsibility.
+    Named clustering, cause correlation require shared memory.
+"""
 
 import hydra
 import redis
 
-# . here is aleksander - application module!
 from . import configs, models
-
-VERSION_BASE = "1.1"
 
 
 class RedisCache:
@@ -17,32 +15,28 @@ class RedisCache:
         This will do round-robin of redis instance in the future.
     """
     _instance: redis.Redis = None
-    _configured: bool = False
 
     def __init__(self):
-        self.config: configs.RedisConfig = None  # type: ignore
-        self._configure()
+        config: configs.RedisConfig|None = self._configure()
+        self.host = config.cache.host
+        self.port = config.cache.port
 
-    def _configure(self):
+    def _configure(self) -> configs.RedisConfig|None:
         """
             Loads configuration from yaml file by hydra.
         """
-        cls = self.__class__
-        if cls._configured:
-            return
-        with hydra.initialize(version_base=VERSION_BASE, config_path="configs"):
-            self.config = hydra.compose(config_name="redis")  # type: ignore
-        if not self.config:
+        cfg = None
+        with hydra.initialize(version_base=configs.VERSION_BASE, config_path="configs"):
+            cfg = hydra.compose(config_name="redis")  # type: ignore
+        if not cfg:
             raise ValueError("Failure of loading configuration for redis.")
-        cls._configured = True
+        return cfg
 
     def instance(self) -> redis.Redis:
-        """
-            Get single instance to do operations
-        """
+        """Returns instance singleton."""
         cls = self.__class__
         if not cls._instance:
-            cls._instance = redis.Redis(host=self.config.cache.host, port=self.config.cache.port)
+            cls._instance = redis.Redis(host=self.host, port=self.port)
         return cls._instance
 
 

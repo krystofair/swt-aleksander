@@ -1,7 +1,7 @@
 """
     Objects for building flow in application.
 """
-
+import typing
 from typing import Any
 import logging
 
@@ -10,7 +10,7 @@ import celery
 
 from . import configs
 from . import models as dmodels
-from .services import app
+from .services import app, Service
 
 log = logging.getLogger("aleksander")
 
@@ -28,6 +28,12 @@ class ResponseService:
         """
         log.info(f"--Receive message--\n{response_body}\n-----")
         return (1, 2, 3)
+    @staticmethod
+    def get_task(self, name) -> Service|None:
+        for task in app.tasks:
+            if name in task.name:
+                return task
+        return None
 
 class SubscriberService:
     @staticmethod

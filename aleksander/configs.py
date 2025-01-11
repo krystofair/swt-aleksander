@@ -3,33 +3,35 @@
 """
 
 from typing import List, Union, Any
-from dataclasses import dataclass, field
 import logging
 
+import attrs
 import hydra
 from hydra import conf
+
+from attrs import define, field
 
 
 log = logging.getLogger(__name__)
 
 VERSION_BASE = "1.1"
 
-@dataclass(frozen=True)
+@define(frozen=True)
 class RedisInstance:
     host: str = "locahost"
     port: int = 6379
 
-@dataclass
+@define
 class RedisConfig:
     cache: RedisInstance = RedisInstance("locahost", 6379)
     broker: RedisInstance = RedisInstance("localhost", 4602)
 
-@dataclass
+@define
 class SqliteConfig:
     _target_: str
     path: str
 
-@dataclass
+@define
 class PostgresConfig:
     _target_: str = "aleksander.dblayer.PostgreSQLConnection"
     port: int = 5432
@@ -42,14 +44,22 @@ class DbConfig:
     db = conf.MISSING
 
 
-@dataclass
-class MainSocketCfg:
-    topic: str
-    sockopts: list[str]
+@define
+class ServicesEntry:
+    name = field(type=bytes, converter=lambda x: x.decode('utf-8'))
+    topic = field(type=bytes, converter=lambda x: x.decode('utf-8'))
+    sockopts = field(type=list[bytes], converter=lambda x: x.decode('utf-8'))
 
 
-@dataclass
+@define
+class Publisher:
+    host: str
+    port: int
+
+
+@define
 class MainConfig:
-    sockets: dict
-    processors: dict
+    db: str
+    publisher: Publisher
+    services: list[ServicesEntry]
 

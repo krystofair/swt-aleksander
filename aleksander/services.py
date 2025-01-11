@@ -16,10 +16,9 @@ from .dblayer import DbMgr
 from . import models as dmodels
 from .models import AbstractObject
 from .processing import reg
+from .configs import VERSION_BASE
 
-VERSION_BASE = "1.1"
-
-app = celery.Celery(task_cls='aleksander.svclayer.models.Service')
+app = celery.Celery(task_cls='aleksander.services.Service')
 
 log = logging.getLogger("services")
 
@@ -30,7 +29,7 @@ class Service(Task):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        with hydra.initialize(version_base=VERSION_BASE, config_path='../configs'):
+        with hydra.initialize(version_base=VERSION_BASE, config_path='configs'):
             use_database: str = hydra.compose(config_name='config').get('db')
 
         self.db = DbMgr(use_database)
@@ -42,6 +41,9 @@ def match_processing(base: Service, response_url, response_body):
     try:
         subtask_procesor = reg.select(response_url)
         match: dmodels.Match = subtask_procesor.task(response_body)
+        if not isinstance(match, dmodels.Match):
+            # TODO: inform administrator about errors in configuration somehow.
+            raise ValueError("Here processor has to return Match model.")
         #: correlation section
         mid = match.match_id()
         if base.cluster.is_match_already_processed(mid):
