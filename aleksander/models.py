@@ -63,9 +63,10 @@ class AbstractObject(abc.ABC):
 
     #: Describes type of object this can be anything. TODO: build enum here.
     def typename(self) -> ObjectType:
-        return ObjectType("Object")
+        return ObjectType("object")
 
-    def match_id_by_portal(self) -> str:
+    def mpid(self) -> str:
+        """Returns match portal identificator."""
         pass
 
     def json(self) -> str:
@@ -85,7 +86,7 @@ class Object(AbstractObject):
     #: Stores JSON in string
     data: str
 
-    def match_id_by_portal(self) -> str:
+    def mpid(self) -> str:
         return self.match_portal_id
 
     def typename(self) -> ObjectType:
@@ -107,7 +108,7 @@ class Statistic(AbstractObject):
     home = field(type=float)
     away = field(type=float)
 
-    def match_id_by_portal(self) -> str:
+    def mpid(self) -> str:
         return self.match_portal_id
 
     @classmethod

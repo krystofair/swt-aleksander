@@ -9,9 +9,15 @@ import zmq
 import celery
 
 from . import configs
-from .svclayer import service_layer_app as main_app
+from . import models as dmodels
+from .services import app
 
 log = logging.getLogger("aleksander")
+
+class ServiceRepository:
+    """
+        Here will have reversed dict.
+    """
 
 
 class ResponseService:

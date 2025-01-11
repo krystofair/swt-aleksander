@@ -6,10 +6,10 @@ import unittest
 from omegaconf import OmegaConf
 from sqlalchemy.orm import Session
 
-from aleksander import dblayer, svclayer, processing
+from aleksander import dblayer, services, processing
 from aleksander.clustering import RedisCache, ClusterService
 from aleksander.models import StrId, Statistic, MatchId
-from aleksander.svclayer import models as svclayer_models
+from aleksander.services import models as svclayer_models
 
 
 class RedisConfigurationTest(unittest.TestCase):
@@ -97,7 +97,7 @@ class TestServiceLayer(unittest.TestCase):
         pass
 
     def test_get_access_to_db(self):
-        @svclayer.service_layer_app.task(bind=True)
+        @services.app.task(bind=True)
         def example_task(base: svclayer_models.Service):
             try:
                 m = dblayer.models.Match(when=datetime.datetime(2023, 8, 1, 18, 0),

@@ -91,6 +91,7 @@ class ClusterService:
         """
             Returns match_id if exist for specified match_portal_id.
         """
+        # TODO: Here will be needed CacheKey for it, this logic is not yet standarized.
         return models.MatchId(self.cache.get(match_portal_id))
 
     def bind_match_portal_id_to_domain(self, match_portal_id, match_id) -> None:
