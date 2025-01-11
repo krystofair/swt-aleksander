@@ -37,6 +37,14 @@ class Service(Task):
 
 
 @app.task(bind=True)
+def health_check(base: Service, url, body):
+    print(url)
+    print(body)
+    with base.db.eng.connect() as connection:
+        print(connection.info)
+    return ":)"
+
+@app.task(bind=True)
 def match_processing(base: Service, response_url, response_body):
     try:
         subtask_procesor = reg.select(response_url)

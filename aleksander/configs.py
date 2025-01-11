@@ -48,7 +48,8 @@ class DbConfig:
 class ServicesEntry:
     name = field(type=bytes, converter=lambda x: x.decode('utf-8'))
     topic = field(type=bytes, converter=lambda x: x.decode('utf-8'))
-    sockopts = field(type=list[bytes], converter=lambda x: x.decode('utf-8'))
+    #: Maybe later, cause there has to be zmq constant resolving.
+    # sockopts = field(type=dict)
 
 
 @define
