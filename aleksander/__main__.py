@@ -45,7 +45,9 @@ async def main(cfg: configs.MainConfig):
 					log.debug(msg[:79])
 					topic, url, body = app.ResponseService.decode_message(msg)
 					if topic:
-						_ = task.apply_async(args=(url, body))  # discard result, there is no backend for results.
+						str_body = body.decode('utf-8')
+						str_url = url.decode('utf-8')
+						_ = task.apply_async(args=(str_url, str_body))  # discard result, there is no backend for results.
 						log.debug(f"Sent {url} to workers")
 				else:
 					# TODO: inform admin about wrong configuration somehow.

@@ -45,6 +45,10 @@ class ClusterService:
         Manager, who share memory between workers,
         so they can inform themselves whether object was processed before.
     """
+    # TODO: Here will be needed CacheKey for it, this logic is not yet standarized.
+    #: For placeholder to real key in the future.
+    MPID2MID_MAPPING = "id({match_portal_id})"
+
     def __init__(self, cache: RedisCache) -> None:
         """
             Prepare redis connection, etc.
@@ -86,9 +90,13 @@ class ClusterService:
         """
             Returns match_id if exist for specified match_portal_id.
         """
-        # TODO: Here will be needed CacheKey for it, this logic is not yet standarized.
-        return models.MatchId(self.cache.get(match_portal_id))
+        mid = self.cache.get(ClusterService.MPID2MID_MAPPING.format(match_portal_id))
+        return models.MatchId(mid)
 
     def bind_match_portal_id_to_domain(self, match_portal_id, match_id) -> None:
-        self.cache.set(match_portal_id, match_id)
-
+        """
+            Set in cache portal id to match uuid for application domain.
+            This could be refactored to returning new match_id and work as a services. #TODO
+        """
+        key = ClusterService.MPID2MID_MAPPING.format(match_portal_id)
+        self.cache.set(key, match_id)

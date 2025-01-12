@@ -1,0 +1,154 @@
+{
+    "event": {
+        "tournament": {
+            "name": "Premier League",
+            "category": {
+                "name": "England",
+                "slug": "england",
+                "sport": {
+                    "name": "Football"
+                },
+                "country": {
+                    "name": "England"
+                }
+            },
+            "uniqueTournament": {
+                "name": "Premier League",
+                "category": {
+                    "name": "England",
+                    "sport": {
+                        "name": "Football"
+                    },
+                    "country": {
+                        "name": "England"
+                    }
+                },
+                "userCount": 1394327,
+                "id": 17,
+                "country": {},
+                "hasPerformanceGraphFeature": true,
+                "hasEventPlayerStatistics": true,
+                "displayInverseHomeAwayTeams": false
+            }
+        },
+        "season": {
+            "year": "24/25"
+        },
+        "roundInfo": {
+            "round": 14
+        },
+        "status": {
+            "code": 100,
+            "description": "Ended",
+            "type": "finished"
+        },
+        "winnerCode": 2,
+        "venue": {
+            "city": {
+                "name": "Ipswich"
+            },
+            "name": "Portman Road Stadium",
+            "country": {
+                "name": "England"
+            },
+            "stadium": {
+                "name": "Portman Road Stadium",
+                "capacity": 29673
+            }
+        },
+        "referee": {
+            "name": "Craig Pawson",
+            "slug": "pawson-craig",
+            "yellowCards": 1606,
+            "redCards": 39,
+            "yellowRedCards": 23,
+            "games": 430,
+            "sport": {
+                "id": 1,
+                "slug": "football",
+                "name": "Football"
+            },
+            "id": 81627,
+            "country": {
+                "alpha2": "EN",
+                "alpha3": "ENG",
+                "name": "England",
+                "slug": "england"
+            }
+        },
+        "homeTeam": {
+            "name": "Ipswich Town",
+            "slug": "ipswich-town",
+            "shortName": "Ipswich",
+            "gender": "M",
+            "sport": {
+                "slug": "football"
+            },
+            "manager": {
+                "name": "Kieran McKenna",
+                "country": {
+                    "name": "Northern Ireland"
+                }
+            },
+            "venue": {
+                "city": {
+                    "name": "Ipswich"
+                },
+                "hidden": false,
+                "slug": "portman-road-stadium",
+                "name": "Portman Road Stadium",
+                "country": {
+                    "name": "England"
+                },
+                "stadium": {
+                    "name": "Portman Road Stadium"
+                }
+            },
+            "country": {
+                "name": "England"
+            },
+            "subTeams": [],
+            "fullName": "Ipswich Town"
+        },
+        "awayTeam": {
+            "name": "Crystal Palace",
+            "gender": "M",
+            "sport": {
+                "name": "Football"
+            },
+            "manager": {
+                "name": "Oliver Glasner",
+                "slug": "oliver-glasner",
+                "shortName": "O. Glasner",
+                "country": {
+                    "name": "Austria"
+                }
+            },
+            "venue": {
+                "city": {
+                    "name": "London"
+                },
+                "name": "Selhurst Park",
+                "country": {
+                    "name": "England"
+                },
+                "stadium": {
+                    "name": "Selhurst Park",
+                    "capacity": 25456
+                }
+            },
+            "country": {
+                "name": "England"
+            },
+            "fullName": "Crystal Palace"
+        },
+        "homeScore": {
+            "current": 0
+        },
+        "awayScore": {
+            "current": 1
+        },
+        "id": 12436961,
+        "startTimestamp": 1733254200
+    }
+}

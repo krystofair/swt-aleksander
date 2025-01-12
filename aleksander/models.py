@@ -102,30 +102,32 @@ class Object(AbstractObject):
 
 
 @define(frozen=True)
-class Statistic(AbstractObject):
-    match_portal_id = field(type=str)
+class Statistic:
     name = field(converter=unicode_slugify, type=str)
     home = field(type=float)
     away = field(type=float)
 
-    def mpid(self) -> str:
-        return self.match_portal_id
+    def json(self) -> dict:
+        """Returns self as json string"""
+        return asdict(self)  # type: ignore
 
-    @classmethod
-    def loads(cls, json_data):
-        """Build this class from json"""
-        return cls()
+@define
+class Statistics(AbstractObject):
+    _match_portal_id = field(type=str)
+    _stats = field(type=list[Statistic])
+
+    @property
+    def data(self):
+        return self._stats
+
+    def mpid(self):
+        return self._match_portal_id
 
     def typename(self) -> ObjectType:
-        return ObjectType(f"stat:{self.name}")
+        return ObjectType(f"stats")
 
-    def json(self) -> str:
-        """Returns self as json string"""
-        return asdict(self)
-
-    def __str__(self):
-        return str(self.json())
-
+    def json(self):
+        return dict(stats = [s.json() for s in self._stats])
 
 @define
 class Match(AbstractMatch):
@@ -140,11 +142,11 @@ class Match(AbstractMatch):
     referee = field(type=str, converter=unicode_slugify)
     league= field(type=str, converter=unicode_slugify)
 
+    def mpid(self) -> str:
+        return self.match_portal_id
+
     def json(self) -> dict:
         return asdict(self)
-
-    def __str__(self):
-        return str(self.json())
 
     def match_id(self) -> MatchId:
         """

@@ -41,7 +41,7 @@ class ProcessorsReg:
             try:
                 if not pattern:
                     raise ValueError("Regex has to be defined.")
-                if model is AbstractObject:
+                if issubclass(model, AbstractObject):
                     raise ValueError("Model has to be defined.")
                 cls.entries.append(PTask(regex=pattern, module=f.__module__, name=f.__qualname__, model=model))
             except ValueError as e:

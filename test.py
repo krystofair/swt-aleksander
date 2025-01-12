@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from aleksander import dblayer, services, processing
 from aleksander.clustering import RedisCache, ClusterService
-from aleksander.models import StrId, Statistic, MatchId
+from aleksander.models import StrId, Statistic, MatchId, Statistics
 
 
 class RedisConfigurationTest(unittest.TestCase):
@@ -66,15 +66,21 @@ class TestDomain(unittest.TestCase):
         assert t.identity == 'nowa tozsamosc'
 
     def test_statistic_model(self):
-        stat = Statistic("mpid", "nazwa", 1.0, 2.0)
+        stat = Statistic("nazwa", 1.0, 2.0)
         print(stat)
-        assert stat.json() == str({"match_portal_id": "mpid",
-                                   "name": "nazwa",
-                                   "home": 1.0, "away": 2.0})
-        stat2 = Statistic("mpid2", "Przydluga nazwa Ze spacjami", 1, 2)
+        assert stat.json() == { "away": 2.0, "name": "nazwa", "home": 1.0}
+        stat2 = Statistic("Przydluga nazwa Ze spacjami", 1, 2)
         # working about slug converter
         assert stat2.name == 'przydluga-nazwa-ze-spacjami'
-        assert stat2.typename() == 'stat:przydluga-nazwa-ze-spacjami'
+        # assert stat2.typename() == 'stat:przydluga-nazwa-ze-spacjami'
+
+        stats = Statistics("mpid", [stat, stat2])
+        assert stats.typename() == "stats"
+        assert stats.mpid() == 'mpid'
+        assert stats.json() == { "stats": [
+            {"name": "nazwa", "home": 1.0, "away": 2.0},
+            {"name": "przydluga-nazwa-ze-spacjami", "home": 1.0, "away": 2.0}
+        ]}
 
     def test_processors_registry(self):
         # test is integrated with processing module test task
