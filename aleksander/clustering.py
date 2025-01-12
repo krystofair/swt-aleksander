@@ -30,7 +30,7 @@ class RedisCache:
             cfg = hydra.compose(config_name="redis")  # type: ignore
         if not cfg:
             raise ValueError("Failure of loading configuration for redis.")
-        return cfg
+        return cfg  # type: ignore
 
     def instance(self) -> redis.Redis:
         """Returns instance singleton."""
@@ -39,7 +39,7 @@ class RedisCache:
             cls._instance = redis.Redis(host=self.host, port=self.port)
         return cls._instance
 
-
+# TODO: change name this class, but now I can't find out relevant
 class ClusterService:
     """
         Manager, who share memory between workers,
@@ -71,6 +71,7 @@ class ClusterService:
         """
             Download match object and check if there is this kind of object as 'loaded'.
         """
+        # TODO: here could be some tree builded for correlation in match.
         objects_type_list = self.cache.lrange(str(match_id), 0, -1)
         for otype in objects_type_list:
             if otype == object_type.encode('utf-8'):

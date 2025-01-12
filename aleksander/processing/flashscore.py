@@ -2,7 +2,7 @@
     Processing data from Flashscore statistics portal.
 """
 
-from ..models import Match, Statistic, Object
+from ..models import *
 from . import reg
 
 

@@ -26,12 +26,14 @@ class Base(DeclarativeBase):
 
 class Match(Base):
     __tablename__ = "matches"
-    id = Column(Integer, Sequence('match_id'), primary_key=True)
+    id = Column(Integer, primary_key=True)
     when = Column(DateTime)
     country = Column(String)
     stadium = Column(String)
     home = Column(String)
     away = Column(String)
+    home_score = Column(Integer)
+    away_score = Column(Integer)
     referee = Column(String)
     statistics: Mapped[List["Statistic"]] = relationship(back_populates='match')
 

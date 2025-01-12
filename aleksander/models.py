@@ -69,7 +69,7 @@ class AbstractObject(abc.ABC):
         """Returns match portal identificator."""
         pass
 
-    def json(self) -> str:
+    def json(self) -> dict:
         """Returns object in JSON"""
         pass
 
@@ -121,7 +121,10 @@ class Statistic(AbstractObject):
 
     def json(self) -> str:
         """Returns self as json string"""
-        return str(asdict(self))
+        return asdict(self)
+
+    def __str__(self):
+        return str(self.json())
 
 
 @define
@@ -132,15 +135,16 @@ class Match(AbstractMatch):
     stadium = field(type=str, converter=unicode_slugify)
     home = field(type=str, converter=unicode_slugify)
     away = field(type=str, converter=unicode_slugify)
+    home_score: int
+    away_score: int
     referee = field(type=str, converter=unicode_slugify)
     league= field(type=str, converter=unicode_slugify)
 
-    def json(self) -> str:
-        """Returns fields in json format."""
-        return str(asdict(self))
+    def json(self) -> dict:
+        return asdict(self)
 
     def __str__(self):
-        return self.json()
+        return str(self.json())
 
     def match_id(self) -> MatchId:
         """
