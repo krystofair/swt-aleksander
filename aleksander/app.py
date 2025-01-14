@@ -8,9 +8,8 @@ import zmq
 from . import configs
 from .services import app, Service
 
-logging.basicConfig()
-log = logging.getLogger("aleksander")
-log.setLevel(configs.LOG_LEVEL)
+
+log = logging.getLogger("app")
 
 
 class ResponseService:

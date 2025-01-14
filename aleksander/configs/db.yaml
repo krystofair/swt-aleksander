@@ -2,7 +2,7 @@ postgresql:
   _target_: aleksander.dblayer.PostgreSQLConnection
   dbname: postgres
   host: 127.0.0.1
-  port: 35777
+  port: 37555
   user: postgres
   password: usmiechnieci123
 

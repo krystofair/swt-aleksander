@@ -17,10 +17,8 @@ with hydra.initialize(version_base=configs.VERSION_BASE, config_path="configs"):
 	CONFIG: configs.MainConfig = hydra.compose(config_name="config")  # type: ignore
 
 #: Initialize logging
-logging.basicConfig()
-#: Initialize logger
+logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger("aleksander")
-log.setLevel(configs.LOG_LEVEL)
 
 
 async def main(cfg: configs.MainConfig):
