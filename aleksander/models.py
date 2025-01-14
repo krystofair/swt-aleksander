@@ -2,23 +2,28 @@ import typing
 import datetime
 import uuid
 import abc
+import collections
 
 import slugify
+import attrs
 from attrs import asdict, define, field
+import orjson as jsonlib
 
 
 unicode_slugify = slugify.slugify
 
 
-class StrId:
+class StrId(collections.UserString):
     """
         Descriptor class for treat Identity as str.
         But can be used as normal object as well for id saved in str.
     """
-    def __init__(self, id: str|bytes):
-        self.id = id
-        if isinstance(id, bytes):
-            self.id = id.decode('utf-8')
+    def __init__(self, seq):
+        #: Add bytes typing automatic decoding by utf-8.
+        sq = seq
+        if isinstance(seq, bytes):
+            sq = seq.decode('utf-8')
+        super().__init__(sq)
 
     def __set_name__(self, owner, name):
         self.name = name
@@ -33,19 +38,10 @@ class StrId:
         try:
             return instance.__dict__[self.name]
         except KeyError:
-            return self.id
+            return self.data
 
-    def __str__(self):
-        return self.id
-
-    def __eq__(self, other):
-        try:
-            return self.id == other.id
-        except AttributeError:
-            if isinstance(other, str):
-                return self.id == other
-            else:
-                raise
+    def __bool__(self):
+        return bool(self.data)
 
     @staticmethod
     def gen_id() -> str:
@@ -55,14 +51,15 @@ class StrId:
 #: Type alias
 MatchId = StrId
 
-#: For now this is 'str' type, but should be enum.
+#: For now this is 'str' type, but should be as hierarchy of AbstractObject.
 ObjectType = typing.NewType("ObjectType", str)
 
 
 class AbstractObject(abc.ABC):
 
     #: Describes type of object this can be anything. TODO: build enum here.
-    def typename(self) -> ObjectType:
+    @staticmethod
+    def typename() -> ObjectType:
         return ObjectType("object")
 
     def mpid(self) -> str:
@@ -81,19 +78,20 @@ class AbstractMatch(AbstractObject):
 @define
 class Object(AbstractObject):
     #: event id
-    match_portal_id: str
+    _match_portal_id: str
 
     #: Stores JSON in string
     data: str
 
     def mpid(self) -> str:
-        return self.match_portal_id
+        return self._match_portal_id
 
-    def typename(self) -> ObjectType:
+    @staticmethod
+    def typename() -> ObjectType:
         return ObjectType('object')
 
-    def json(self) -> str:
-        return self.data
+    def json(self) -> dict:
+        return jsonlib.loads(self.data)
 
     # this is
     # def match_id(self):
@@ -123,24 +121,29 @@ class Statistics(AbstractObject):
     def mpid(self):
         return self._match_portal_id
 
-    def typename(self) -> ObjectType:
+    @staticmethod
+    def typename() -> ObjectType:
         return ObjectType(f"stats")
 
     def json(self):
-        return dict(stats = [s.json() for s in self._stats])
+        return asdict(self)
 
 @define
 class Match(AbstractMatch):
     match_portal_id = field(type=str)
-    when: datetime.datetime
+    when = field(type=datetime.datetime)
     country = field(type=str, converter=unicode_slugify)
     stadium = field(type=str, converter=unicode_slugify)
     home = field(type=str, converter=unicode_slugify)
     away = field(type=str, converter=unicode_slugify)
-    home_score: int
-    away_score: int
+    home_score = field(type=int)
+    away_score = field(type=int)
     referee = field(type=str, converter=unicode_slugify)
     league= field(type=str, converter=unicode_slugify)
+
+    @staticmethod
+    def typename() -> ObjectType:
+        return ObjectType('match')
 
     def mpid(self) -> str:
         return self.match_portal_id

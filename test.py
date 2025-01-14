@@ -65,10 +65,16 @@ class TestDomain(unittest.TestCase):
         t.identity = b'nowa tozsamosc'
         assert t.identity == 'nowa tozsamosc'
 
+    def test_StrId_as_non_descriptor(self):
+        MyType = StrId
+        match_id = MyType("problem")
+        assert match_id == "problem"
+        assert str(match_id) == "problem"
+
     def test_statistic_model(self):
         stat = Statistic("nazwa", 1.0, 2.0)
         print(stat)
-        assert stat.json() == { "away": 2.0, "name": "nazwa", "home": 1.0}
+        assert stat.json() == {'away': 2.0, 'home': 1.0, 'name': 'nazwa'}
         stat2 = Statistic("Przydluga nazwa Ze spacjami", 1, 2)
         # working about slug converter
         assert stat2.name == 'przydluga-nazwa-ze-spacjami'
@@ -77,7 +83,9 @@ class TestDomain(unittest.TestCase):
         stats = Statistics("mpid", [stat, stat2])
         assert stats.typename() == "stats"
         assert stats.mpid() == 'mpid'
-        assert stats.json() == { "stats": [
+        assert stats.json() == {
+            "_match_portal_id": "mpid",
+            "_stats": [
             {"name": "nazwa", "home": 1.0, "away": 2.0},
             {"name": "przydluga-nazwa-ze-spacjami", "home": 1.0, "away": 2.0}
         ]}
@@ -97,6 +105,17 @@ class TestDatabaseConfiguration(unittest.TestCase):
     def test_loading_configuration(self):
         mgr = dblayer.DbMgr("sqlite")
         print(OmegaConf.to_yaml(mgr._cfg))
+
+    def test_add_to_db(self):
+        """Tests if """
+        db_mgr = dblayer.DbMgr('postgresql')
+        with Session(db_mgr.engine) as session:
+            session.add(dblayer.models.Statistic(
+                match_id="1",
+                name='xdddd',
+                home=123,
+                away=321
+            ))
 
 
 class TestServiceLayer(unittest.TestCase):

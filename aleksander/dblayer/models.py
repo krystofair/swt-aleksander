@@ -1,19 +1,17 @@
 """
-    Here you find models for tables in db.
+    Tables for database in ORM sqlAlchemy style.
+    Maybe here will be some mismatch about using concepts like Column descriptors
+    with connection to mapped_column. This state should not last so long.
 """
-from typing import List
-
 from sqlalchemy import (
     Column,
     Integer,
     Float,
     String,
-    Sequence,
     DateTime,
     ForeignKey
 )
 from sqlalchemy.orm import (
-    relationship,
     mapped_column,
     Mapped,
     DeclarativeBase,
@@ -27,6 +25,7 @@ class Base(DeclarativeBase):
 class Match(Base):
     __tablename__ = "matches"
     id = Column(Integer, primary_key=True)
+    match_id = Column(String, unique=True)
     when = Column(DateTime)
     country = Column(String)
     stadium = Column(String)
@@ -35,16 +34,14 @@ class Match(Base):
     home_score = Column(Integer)
     away_score = Column(Integer)
     referee = Column(String)
-    statistics: Mapped[List["Statistic"]] = relationship(back_populates='match')
 
 
 class Statistic(Base):
     __tablename__ = "statistics"
     id: Mapped[int] = mapped_column(primary_key=True)
-    match_id = Column(Integer, ForeignKey('matches.id'))
+    match_id = Column(String, ForeignKey('matches.match_id'))
     name = Column(String)
     home = Column(Float)
     away = Column(Float)
-    match = relationship(Match)
 
 __all__ = ["Match", "Statistic"]

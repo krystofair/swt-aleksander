@@ -2,12 +2,17 @@
     Module with correlation responsibility.
     Named clustering, cause correlation require shared memory.
 """
+import logging
+logging.basicConfig()
+log=logging.getLogger("clustering")
+log.setLevel(logging.DEBUG)
+import functools
+
+from . import configs, models, exc
 
 import hydra
 import redis
-
-from . import configs, models
-
+import orjson as jsonlib
 
 class RedisCache:
     """
@@ -39,6 +44,62 @@ class RedisCache:
             cls._instance = redis.Redis(host=self.host, port=self.port)
         return cls._instance
 
+
+class CacheKeysMgr:
+    """
+        Manage keys used in cache - key-value storage.
+        Attributes:
+            keys: are bytes format to fill
+        Methods are for simplified filling keys.
+    """
+    keys = {
+        'delayed': "DELAYED({portal}, {match_portal_id})",
+        'match_id': "MATCH_ID({portal}, {match_portal_id})",
+        'loaded': "LOADED({match_id}, {typename})"
+    }
+    def __init__(self, portal_name:str|bytes=None):
+        """Allow to fill predefined portal_name parameter for function."""
+        self.p = portal_name
+
+    def _check_nullable_portal_name(self, p):
+        """
+            Safeguard for not do a mistake in form of not set portal_name in constructor
+            and not set when called function.
+        """
+        if not p and not self.p:
+            raise ValueError("One of the value has to be filled.")
+
+    def _key(self, subj: str) -> str:
+        """
+            Helper if cache require specific type of keys.
+            Returns converted formatted keys. (Now no needed)
+        """
+        return subj
+
+    def delayed(self, match_portal_id: str, portal_name: str = None):
+        """
+            Key for mapping objects' body with their typenames, which will be process in another (internal) task.
+        """
+        return self._key(self.keys['delayed'].format(
+            portal = self._check_nullable_portal_name(portal_name or self.p),
+            match_portal_id = match_portal_id
+        ))
+
+    def match_id(self, match_portal_id: str, portal_name: str = None):
+        return self._key(self.keys['match_id'].format(
+            portal=self._check_nullable_portal_name(portal_name or self.p),
+            match_portal_id=match_portal_id
+        ))
+
+    def loaded(self, match_id: str, typename: str):
+        """
+            Key for this object which was already saved in database.
+        """
+        return self._key(self.keys['loaded'].format(
+            match_id=match_id,
+            typename=typename
+        ))
+
 # TODO: change name this class, but now I can't find out relevant
 class ClusterService:
     """
@@ -47,56 +108,52 @@ class ClusterService:
     """
     # TODO: Here will be needed CacheKey for it, this logic is not yet standarized.
     #: For placeholder to real key in the future.
-    MPID2MID_MAPPING = "id({match_portal_id})"
 
     def __init__(self, cache: RedisCache) -> None:
         """
             Prepare redis connection, etc.
         """
         self.cache = cache.instance()
+        self.key_mgr = CacheKeysMgr("sofascore")  # now using only one portal.
 
-    def is_match_already_processed(self, match_id: models.MatchId) -> bool:
+    def check_object_processed(self, mid, typename) -> bool:
         """
-            Returns True if specified match was processed before, False otherwise.
-            Arguments:
-                match_portal_id - from specific statistics portal id.
+            Returns True if match already in database, False otherwise.
         """
-        return self.is_match_have_that_object(match_id, 'match')
+        return True if self.cache.get(self.key_mgr.loaded(mid, typename)) else False
 
-    def sign_match_as_processed(self, match_id: models.MatchId) -> None:
-        """
-            Save id for being recgonized in the future.
-        """
-        # this casting types is awful, I do this to be better oriented in the future
-        # when I implement class type for match_id.
-        self.add_object_type_of_match(str(match_id), 'match')
+    def sign_object_processed(self, match_id: models.MatchId, typename: str) -> None:
+        key = self.key_mgr.loaded(str(match_id), typename)
+        self.cache.set(key, 1)
 
-    def is_match_have_that_object(self, match_id: models.MatchId, object_type: str) -> bool:
+    def get_match_id(self, match_portal_id, portal_name=None) -> models.MatchId|None:
         """
-            Download match object and check if there is this kind of object as 'loaded'.
+            Returns match_id if exist for specified match_portal_id else None.
         """
-        # TODO: here could be some tree builded for correlation in match.
-        objects_type_list = self.cache.lrange(str(match_id), 0, -1)
-        for otype in objects_type_list:
-            if otype == object_type.encode('utf-8'):
-                return True
-        return False
+        cache_key = self.key_mgr.match_id(match_portal_id, portal_name)
+        mid = self.cache.get(cache_key)
+        return models.MatchId(mid) if mid else None
 
-    def add_object_type_of_match(self, match_portal_id: str, object_type: str) -> None:
-        ot = object_type.encode('utf-8')
-        self.cache.lpush(match_portal_id, ot)
-
-    def match_portal_id_with_domain(self, match_portal_id) -> models.MatchId:
-        """
-            Returns match_id if exist for specified match_portal_id.
-        """
-        mid = self.cache.get(ClusterService.MPID2MID_MAPPING.format(match_portal_id))
-        return models.MatchId(mid)
-
-    def bind_match_portal_id_to_domain(self, match_portal_id, match_id) -> None:
+    def bind_portal_id2match_id(self, match_portal_id, match_id, portal_name=None) -> None:
         """
             Set in cache portal id to match uuid for application domain.
             This could be refactored to returning new match_id and work as a services. #TODO
         """
-        key = ClusterService.MPID2MID_MAPPING.format(match_portal_id)
-        self.cache.set(key, match_id)
+        key = self.key_mgr.match_id(match_portal_id, portal_name)
+        self.cache.set(key, str(match_id))
+
+    def store_temporary(self, obj: models.AbstractObject, portal_name: str = None):
+        cache_key = self.key_mgr.delayed(obj.mpid(), portal_name)
+        self.cache.hset(cache_key, obj.typename(), mapping=obj.json())
+
+    def get_stored_object(self, m_portal_id: str,
+                          model_class: type[models.AbstractObject],
+                          portal_name: str=None
+                          ) -> type[models.AbstractObject]:
+        """
+            Returns body of stored object specified by model.
+        """
+        #: get mapping.
+        cache_key = self.key_mgr.delayed(m_portal_id, portal_name)
+        json = self.cache.hget(cache_key, model_class.typename())
+        return model_class(**json)  # type: ignore
