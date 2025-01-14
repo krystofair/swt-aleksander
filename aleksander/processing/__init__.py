@@ -3,11 +3,12 @@
     First here are decorators for assign to task a type which object produce.
     unit, task is reference to the same, reference to function from processor module.
 """
+import re
 import importlib
 import logging
-import re
+logging.basicConfig()
 
-from aleksander.models import AbstractObject
+from ..models import AbstractObject
 
 from attrs import define, field
 
@@ -39,14 +40,14 @@ class ProcessorsReg:
         def decorator(f):
             # part of registering
             try:
-                if not pattern:
-                    raise ValueError("Regex has to be defined.")
-                if issubclass(model, AbstractObject):
-                    raise ValueError("Model has to be defined.")
+                # if not pattern:
+                #     raise ValueError("Regex has to be defined.")
+                # if issubclass(model, AbstractObject):
+                #     raise ValueError("Model has to be defined.")
                 cls.entries.append(PTask(regex=pattern, module=f.__module__, name=f.__qualname__, model=model))
             except ValueError as e:
-                log.warning("function {module}.{name} will not be found.")
                 log.info(e)
+                log.warning(f"function {f.__module__}.{f.__qualname__} will not be found.")
             return f
         return decorator
 
@@ -71,3 +72,9 @@ class TestObj(AbstractObject):
 @reg(pattern='9532d4f0-077e-4e57-97f1-6022ced75124/.*$', model=TestObj)
 def aaa(msg):
     return msg
+
+#: Import processors here.
+from . import (
+    sofascore,
+    flashscore
+)

@@ -11,24 +11,6 @@
                 "country": {
                     "name": "England"
                 }
-            },
-            "uniqueTournament": {
-                "name": "Premier League",
-                "category": {
-                    "name": "England",
-                    "sport": {
-                        "name": "Football"
-                    },
-                    "country": {
-                        "name": "England"
-                    }
-                },
-                "userCount": 1394327,
-                "id": 17,
-                "country": {},
-                "hasPerformanceGraphFeature": true,
-                "hasEventPlayerStatistics": true,
-                "displayInverseHomeAwayTeams": false
             }
         },
         "season": {

@@ -44,7 +44,7 @@ async def main(cfg: configs.MainConfig):
 					msg = await socket.recv()
 					log.debug(msg[:79])
 					topic, url, body = app.ResponseService.decode_message(msg)
-					if topic:
+					if topic and body.strip():
 						str_body = body.decode('utf-8')
 						str_url = url.decode('utf-8')
 						_ = task.apply_async(args=(str_url, str_body))  # discard result, there is no backend for results.

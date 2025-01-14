@@ -1,11 +1,19 @@
 """
     Services
     --------
-    Celery's tasks as high level services.
+    Celery's tasks as high level services. It worth to tell,
+    that module has celery app configured so it is entry point
+    for workers. Here has to be provided
 """
-
 import logging
-import sys
+
+logging.basicConfig()
+
+from .clustering import ClusterService, RedisCache
+from .dblayer import DbMgr, models as dbmodels
+from . import models, exc, processing
+from .exc import ObjectAlreadyProcessed
+from .configs import VERSION_BASE
 
 import celery
 from sqlalchemy.exc import DatabaseError
@@ -13,16 +21,13 @@ from sqlalchemy.orm import Session
 from celery import Task
 import hydra
 
-from .clustering import ClusterService, RedisCache
-from .dblayer import DbMgr, models as dbmodels
-from . import models, exc
-from .exc import ObjectAlreadyProcessed
-from .processing import reg
-from .configs import VERSION_BASE
 
-app = celery.Celery(task_cls='aleksander.services.Service')
+with hydra.initialize(version_base=VERSION_BASE, config_path="configs"):
+    cfg = hydra.compose(config_name="redis")  # type: ignore
+app = celery.Celery(task_cls='aleksander.services.Service', broker=f"redis://{cfg.broker.host}:{cfg.broker.port}/0")
 
 log = logging.getLogger("services")
+log.setLevel(logging.DEBUG)
 
 
 class Service(Task):
@@ -35,7 +40,8 @@ class Service(Task):
             use_database: str = hydra.compose(config_name='config').get('db')
 
         self.db = DbMgr(use_database)
-        self.cluster = ClusterService(RedisCache())
+        redis = RedisCache()
+        self.cluster = ClusterService(redis)
 
 
 @app.task(bind=True)
@@ -46,40 +52,79 @@ def health_check(base: Service, url, body):
         print(connection.info)
     return ":)"
 
+
+@app.task(bind=True)
+def saving_stored_stats(base: Service, match_id: models.MatchId, match_portal_id: str):
+    """
+        Gets stats json from cache and save it in db with match_id foreign key.
+    """
+    log.info("start cache2db_stats task")
+    stats: models.Statistics = base.cluster.get_stored_object(match_portal_id, models.Statistics)  # type: ignore
+    if not stats:
+        return
+    with Session(base.db.eng) as session:
+        for stat in stats.data():
+            session.add(dbmodels.Statistic(
+                match_id = str(match_id),
+                name = stat.name,
+                home = stat.home,
+                away = stat.away
+            ))
+        session.commit()
+        base.cluster.sign_object_processed(match_id, stats.typename())
+        log.info("Stats from cache migrated to database successfully.")
+
+
 @app.task(bind=True)
 def match_processing(base: Service, response_url, response_body):
     try:
-        processor = reg.select(response_url)
+        processor = processing.reg.select(response_url)
+        if not processor:
+            log.warning("Processor not found for url: '{url}'. All processors accessible: {ps}".format(
+                url=response_url,
+                ps=', '.join([str(t) for t in processing.reg.entries])
+            ))
         try:
             match: models.Match = processor.task(response_url, response_body)
+            log.debug(match.json())
             if not isinstance(match, models.Match):
                 # TODO: inform administrator about errors in configuration somehow.
                 raise ValueError("Here processor has to return Match model.")
             #: correlation section
             mid = match.match_id()
             mpid = match.mpid()
-            base.cluster.bind_match_portal_id_to_domain(mpid, mid)
-            if base.cluster.is_match_already_processed(mid):
-                raise exc.MatchAlreadyProcessed(match_id=mid, match_portal_id=mpid, portal="sofascore.com")
-            base.cluster.sign_match_as_processed(mid)  # raise exception MatchAlreadyProcessed? example.
+            log.debug(f"{mid=}, {mpid=}")
+            base.cluster.map_match_id(mpid, mid)
+            #: Find is there temporary object for me and plan tasks for saving it.
+            for m in [models.Statistics, models.Object]:
+                if base.cluster.get_stored_object(mpid, m) and not base.cluster.check_object_processed(mid, m.typename()):
+                    match m.typename():
+                        case 'stats': saving_stored_stats.apply_async(args=(mid, mpid))
+            if base.cluster.check_object_processed(mid, match.typename()):
+                raise exc.MatchAlreadyProcessed(match_id=mid, match_portal_id=mpid, portal="sofascore")
         except exc.BuildModelException as e:
             log.error(e)
             return
-        except Exception as e:  # some errors when cache access?
-            log.error(e)
-            return
-
         #: saving in database
         with Session(base.db.eng) as session:
-            session.add(dbmodels.Match(**match.json()))
+            session.add(dbmodels.Match(
+                match_id = str(match.match_id()),
+                when = match.when,
+                country = match.country,
+                stadium = match.stadium,
+                home = match.home,
+                away = match.away,
+                home_score = match.home_score,
+                away_score = match.away_score,
+                referee = match.referee
+            ))
             session.commit()
+            base.cluster.sign_object_processed(mid, match.typename())  # raise exception MatchAlreadyProcessed? example.
+
     except exc.MatchAlreadyProcessed as e:
         log.info(f"Match {e.match_id} (portal:{e.portal}) already processed")
     except DatabaseError as e:
-        type, value, traceback = sys.exc_info()
-        log.error(f"{type}, {value}")
-        log.exception(e)
-
+        log.error(f"DatabaseError: {e}")
     except Exception as e:
         log.error(e)
     else:
@@ -88,28 +133,38 @@ def match_processing(base: Service, response_url, response_body):
 
 @app.task(bind=True)
 def statistics_processing(base: Service, response_url, response_body):
-    ptask = reg.select(response_url)
+    processor = processing.reg.select(response_url)
     try:
-        stats: models.Statistics = ptask.task(response_url, response_body)
-        match_id: models.MatchId = base.cluster.match_portal_id_with_domain(stats.mpid())
+        stats: models.Statistics = processor.task(response_url, response_body)
+        match_id: models.MatchId = base.cluster.get_match_id(stats.mpid())
         db_stats = list()
-        statype = stats.typename()
-        if base.cluster.is_match_have_that_object(match_id, statype):
-            raise ObjectAlreadyProcessed(statype, match_id)
-        for stat in stats.data:
-            s = dbmodels.Statistic(
-                match_id = stats.mpid(),  # TODO: prototype
-                name = stat.name,
-                home = stat.home,
-                away = stat.away
-            )
-            db_stats.append(s)
+        #: match_id is None means that match object not created yet.
+        log.debug(f"{match_id=}")
+        if match_id and base.cluster.check_object_processed(match_id, stats.typename()):
+            raise ObjectAlreadyProcessed(stats.typename(), match_id)
+        if not match_id:
+            # save statistics only in cache.
+            base.cluster.store_temporary(stats)
+            log.info(f"Stored temporary obj: {stats.__class__}")
+        else:
+            for stat in stats.data:
+                s = dbmodels.Statistic(
+                    match_id = stats.mpid(),
+                    name = stat.name,
+                    home = stat.home,
+                    away = stat.away
+                )
+                db_stats.append(s)
             #: saving in database
             with Session(base.db.eng) as session:
                 session.add_all(db_stats)
+                session.commit()
+                base.cluster.sign_object_processed(match_id, stats.typename())
     except ObjectAlreadyProcessed as e:
         log.info(e)
+    except DatabaseError as e:
+        log.error(f"Statistics are not saved in database, because: {e}")
     except Exception as e:
         log.exception(e)
-
-    print("proces stats")
+    else:
+        log.info("Statistics processed successfully.")

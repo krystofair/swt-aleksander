@@ -134,7 +134,7 @@ class ClusterService:
         mid = self.cache.get(cache_key)
         return models.MatchId(mid) if mid else None
 
-    def bind_portal_id2match_id(self, match_portal_id, match_id, portal_name=None) -> None:
+    def map_match_id(self, match_portal_id, match_id, portal_name=None) -> None:
         """
             Set in cache portal id to match uuid for application domain.
             This could be refactored to returning new match_id and work as a services. #TODO
@@ -146,14 +146,16 @@ class ClusterService:
         cache_key = self.key_mgr.delayed(obj.mpid(), portal_name)
         self.cache.hset(cache_key, obj.typename(), mapping=obj.json())
 
+    #: Cache is only for single worker, you know.
+    @functools.cache
     def get_stored_object(self, m_portal_id: str,
                           model_class: type[models.AbstractObject],
                           portal_name: str=None
-                          ) -> type[models.AbstractObject]:
+                          ) -> type[models.AbstractObject]|None:
         """
             Returns body of stored object specified by model.
         """
         #: get mapping.
         cache_key = self.key_mgr.delayed(m_portal_id, portal_name)
-        json = self.cache.hget(cache_key, model_class.typename())
-        return model_class(**json)  # type: ignore
+        jsond = self.cache.hget(cache_key, model_class.typename())
+        return model_class(**jsond)  if jsond else None
