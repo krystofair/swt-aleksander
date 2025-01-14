@@ -11,20 +11,22 @@ from .clustering import ClusterService, RedisCache
 from .dblayer import DbMgr, models as dbmodels
 from . import models, exc, processing
 from .exc import ObjectAlreadyProcessed
-from .configs import VERSION_BASE
+from . import configs
 
 import celery
+from celery.app.log import Logging
 from sqlalchemy.exc import DatabaseError
 from sqlalchemy.orm import Session
 from celery import Task
 import hydra
 
 
-with hydra.initialize(version_base=VERSION_BASE, config_path="configs"):
+with hydra.initialize(version_base=configs.VERSION_BASE, config_path="configs"):
     cfg = hydra.compose(config_name="redis")  # type: ignore
-app = celery.Celery(task_cls='aleksander.services.Service', broker=f"redis://{cfg.broker.host}:{cfg.broker.port}/0")
-log = logging.getLogger("services")
 
+app = celery.Celery(task_cls='aleksander.services.Service', broker=f"redis://{cfg.broker.host}:{cfg.broker.port}/0")
+log = Logging(app).get_default_logger()
+log.setLevel(logging.DEBUG)
 
 class Service(Task):
     """
@@ -32,7 +34,7 @@ class Service(Task):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        with hydra.initialize(version_base=VERSION_BASE, config_path='configs'):
+        with hydra.initialize(version_base=configs.VERSION_BASE, config_path='configs'):
             use_database: str = hydra.compose(config_name='config').get('db')
 
         self.db = DbMgr(use_database)

@@ -4,6 +4,8 @@
 
 from typing import List, Union, Any
 import logging
+#: Initialize logging
+logging.basicConfig(level=logging.DEBUG)
 
 import attrs
 import hydra

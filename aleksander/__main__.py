@@ -16,8 +16,7 @@ from . import configs, services, app
 with hydra.initialize(version_base=configs.VERSION_BASE, config_path="configs"):
 	CONFIG: configs.MainConfig = hydra.compose(config_name="config")  # type: ignore
 
-#: Initialize logging
-logging.basicConfig(level=logging.DEBUG)
+
 log = logging.getLogger("aleksander")
 
 
