@@ -7,8 +7,6 @@
 """
 import logging
 
-logging.basicConfig()
-
 from .clustering import ClusterService, RedisCache
 from .dblayer import DbMgr, models as dbmodels
 from . import models, exc, processing
@@ -25,9 +23,7 @@ import hydra
 with hydra.initialize(version_base=VERSION_BASE, config_path="configs"):
     cfg = hydra.compose(config_name="redis")  # type: ignore
 app = celery.Celery(task_cls='aleksander.services.Service', broker=f"redis://{cfg.broker.host}:{cfg.broker.port}/0")
-
 log = logging.getLogger("services")
-log.setLevel(logging.DEBUG)
 
 
 class Service(Task):
@@ -63,12 +59,14 @@ def saving_stored_stats(base: Service, match_id: models.MatchId, match_portal_id
     if not stats:
         return
     with Session(base.db.eng) as session:
-        for stat in stats.data():
+        for stat in stats.data:
+            log.debug(stat)
+            s = models.Statistic.fromjson(stat)
             session.add(dbmodels.Statistic(
                 match_id = str(match_id),
-                name = stat.name,
-                home = stat.home,
-                away = stat.away
+                name = s.name,
+                home = s.home,
+                away = s.away
             ))
         session.commit()
         base.cluster.sign_object_processed(match_id, stats.typename())
@@ -144,6 +142,7 @@ def statistics_processing(base: Service, response_url, response_body):
             raise ObjectAlreadyProcessed(stats.typename(), match_id)
         if not match_id:
             # save statistics only in cache.
+            log.debug(stats)
             base.cluster.store_temporary(stats)
             log.info(f"Stored temporary obj: {stats.__class__}")
         else:

@@ -3,9 +3,6 @@
     Named clustering, cause correlation require shared memory.
 """
 import logging
-logging.basicConfig()
-log=logging.getLogger("clustering")
-log.setLevel(logging.DEBUG)
 import functools
 
 from . import configs, models, exc
@@ -13,6 +10,9 @@ from . import configs, models, exc
 import hydra
 import redis
 import orjson as jsonlib
+
+
+log = logging.getLogger("clustering")
 
 class RedisCache:
     """
@@ -144,9 +144,9 @@ class ClusterService:
 
     def store_temporary(self, obj: models.AbstractObject, portal_name: str = None):
         cache_key = self.key_mgr.delayed(obj.mpid(), portal_name)
-        self.cache.hset(cache_key, obj.typename(), mapping=obj.json())
+        self.cache.hset(cache_key, obj.typename(), mapping=obj.todict())
 
-    #: Cache is only for single worker, you know.
+    #: this type of cache is only for single worker, you know.
     @functools.cache
     def get_stored_object(self, m_portal_id: str,
                           model_class: type[models.AbstractObject],
@@ -157,5 +157,5 @@ class ClusterService:
         """
         #: get mapping.
         cache_key = self.key_mgr.delayed(m_portal_id, portal_name)
-        jsond = self.cache.hget(cache_key, model_class.typename())
-        return model_class(**jsond)  if jsond else None
+        mapping = self.cache.hget(cache_key, model_class.typename())
+        return model_class.fromdict(mapping) if mapping else None

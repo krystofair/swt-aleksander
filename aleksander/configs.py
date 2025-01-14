@@ -12,7 +12,7 @@ from hydra import conf
 from attrs import define, field
 
 VERSION_BASE = "1.1"
-LOG_LEVEL = logging.DEBUG
+logging.basicConfig(level=logging.DEBUG)
 
 
 @define(frozen=True)

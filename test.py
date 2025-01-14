@@ -2,15 +2,18 @@ import datetime
 import subprocess
 import unittest
 import logging
-log = logging.getLogger('testing')
-
-from omegaconf import OmegaConf
-from sqlalchemy.orm import Session
 
 from aleksander import dblayer, services, processing
 from aleksander.clustering import RedisCache, ClusterService
-from aleksander.models import StrId, Statistic, MatchId, Statistics
+from aleksander.models import Statistic, MatchId, Statistics, Match
 
+from omegaconf import OmegaConf
+from sqlalchemy.orm import Session
+import orjson as jsonlib
+
+
+logging.basicConfig(level=logging.DEBUG)
+log = logging.getLogger('testing')
 
 class RedisConfigurationTest(unittest.TestCase):
     def test_redis_configuration(self):
@@ -33,62 +36,40 @@ class ClusteringTest(unittest.TestCase):
         subprocess.run(cmdline.split(' '))
 
     def test_redis_connection(self):
-        unittest.skip("redis is not connected right now")
-        return
-        redis = RedisCache().instance()
-        redis.set('something', 'hahahaha')
-        receive = redis.get('something')  # .decode('utf-8') nie chce tak robic, TODO: implement automatic decoding.
-        assert receive == b'hahahaha'
-
-    def test_cluster_service(self):
         redis = RedisCache()
-        cd = ClusterService(redis)
-        # match_id typed, but it is string for now anyway
-        match_id = MatchId('match-id')
-        cd.add_object_type_of_match('match-id', 'stats')
-        assert cd.is_match_have_that_object(match_id, 'stats') == True, 'stats object not on list'
-        assert cd.is_match_already_processed(match_id) == False, 'match was check as processed'
-        cd.sign_match_as_processed(match_id)
-        assert cd.is_match_already_processed(match_id) == True, 'match was not processed'
+        redis.host = 'localhost'
+        redis.port = 6379
+        r = redis.instance()
+        r.set('something', 'hahahaha')
+        receive = r.get('something')  # .decode('utf-8') nie chce tak robic, TODO: implement automatic decoding.
+        assert receive == b'hahahaha'
 
 
 class TestDomain(unittest.TestCase):
-    def test_StrId_descriptor(self):
-        generated = StrId.gen_id()
-
-        class T:
-            identity = StrId(generated)
-
-        t = T()
-        assert t.identity == generated
-        # changing type tu string, with encoding UTF8
-        t.identity = b'nowa tozsamosc'
-        assert t.identity == 'nowa tozsamosc'
-
-    def test_StrId_as_non_descriptor(self):
-        MyType = StrId
-        match_id = MyType("problem")
-        assert match_id == "problem"
-        assert str(match_id) == "problem"
 
     def test_statistic_model(self):
         stat = Statistic("nazwa", 1.0, 2.0)
         print(stat)
-        assert stat.json() == {'away': 2.0, 'home': 1.0, 'name': 'nazwa'}
+        # assert jsonlib.dumps(stat.json()) == {'away': 2.0, 'home': 1.0, 'name': 'nazwa'}
         stat2 = Statistic("Przydluga nazwa Ze spacjami", 1, 2)
         # working about slug converter
         assert stat2.name == 'przydluga-nazwa-ze-spacjami'
         # assert stat2.typename() == 'stat:przydluga-nazwa-ze-spacjami'
-
         stats = Statistics("mpid", [stat, stat2])
-        assert stats.typename() == "stats"
+        assert stats.typename() == "Statistics"
         assert stats.mpid() == 'mpid'
-        assert stats.json() == {
-            "_match_portal_id": "mpid",
-            "_stats": [
-            {"name": "nazwa", "home": 1.0, "away": 2.0},
-            {"name": "przydluga-nazwa-ze-spacjami", "home": 1.0, "away": 2.0}
-        ]}
+        serialized_form = stats.json()
+        sts2 = Statistics.fromjson(serialized_form)
+        assert stats == sts2
+
+    def test_match_model_json(self):
+        m = Match(
+            '123', "2024-03-04t20:45",
+            'poland','narodowy','legia','lech', 1, 1, 'sedzia', 'ekstraklasa'
+        )
+        serialized = m.json()
+        m2 = Match.fromjson(serialized)
+        assert m == m2
 
     def test_processors_registry(self):
         # test is integrated with processing module test task

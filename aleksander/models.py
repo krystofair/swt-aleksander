@@ -1,8 +1,10 @@
 import typing
 import datetime
-import uuid
 import abc
-import collections
+import logging
+
+import aleksander.utils as utils
+import aleksander.utils.converters as conv
 
 import slugify
 import attrs
@@ -11,45 +13,10 @@ import orjson as jsonlib
 
 
 unicode_slugify = slugify.slugify
-
-
-class StrId(collections.UserString):
-    """
-        Descriptor class for treat Identity as str.
-        But can be used as normal object as well for id saved in str.
-    """
-    def __init__(self, seq):
-        #: Add bytes typing automatic decoding by utf-8.
-        sq = seq
-        if isinstance(seq, bytes):
-            sq = seq.decode('utf-8')
-        super().__init__(sq)
-
-    def __set_name__(self, owner, name):
-        self.name = name
-
-    def __set__(self, instance, value):
-        v = value
-        if isinstance(value, bytes):
-            v = value.decode('utf-8')
-        instance.__dict__[self.name] = v
-
-    def __get__(self, instance, owner):
-        try:
-            return instance.__dict__[self.name]
-        except KeyError:
-            return self.data
-
-    def __bool__(self):
-        return bool(self.data)
-
-    @staticmethod
-    def gen_id() -> str:
-        return str(uuid.uuid4())
-
+log = logging.getLogger("domain.model")
 
 #: Type alias
-MatchId = StrId
+MatchId = typing.NewType("MatchId", str)
 
 #: For now this is 'str' type, but should be as hierarchy of AbstractObject.
 ObjectType = typing.NewType("ObjectType", str)
@@ -57,18 +24,41 @@ ObjectType = typing.NewType("ObjectType", str)
 
 class AbstractObject(abc.ABC):
 
-    #: Describes type of object this can be anything. TODO: build enum here.
-    @staticmethod
-    def typename() -> ObjectType:
-        return ObjectType("object")
+    @classmethod
+    def typename(cls) -> ObjectType:
+        return ObjectType(cls.__name__)
 
     def mpid(self) -> str:
-        """Returns match portal identificator."""
+        """Returns match portal identity."""
         pass
 
-    def json(self) -> dict:
+    def todict(self):
+        """
+            Default implementation use `asdict` from `attrs` library.
+            One exception is this abstract class, which is not `AttrsInstance` defined by `attrs.define`.
+        """
+        return asdict(self)
+
+    def json(self) -> bytes:
         """Returns object in JSON"""
-        pass
+        return jsonlib.dumps(self.todict())
+
+    @classmethod
+    def fromjson(cls, data: bytes|str) -> type:
+        """Build class from json."""
+        dictionary = jsonlib.loads(data)
+        return cls.fromdict(dictionary)
+
+    @classmethod
+    def fromdict(cls, dictionary) -> type:
+        if not isinstance(dictionary, typing.Mapping):
+            raise TypeError(f"Cannot build class by `fromdict` method when type is {dictionary.__class__!r}")
+        try:
+            log.info("Try build class {cls.__name__!r} by **dictionary style.")
+            return cls(**dictionary)
+        except:
+            log.info("Generic method failed.")
+            return None
 
 
 class AbstractMatch(AbstractObject):
@@ -86,28 +76,24 @@ class Object(AbstractObject):
     def mpid(self) -> str:
         return self._match_portal_id
 
-    @staticmethod
-    def typename() -> ObjectType:
-        return ObjectType('object')
+    def todict(self):
+        return {"data": self.data}
 
-    def json(self) -> dict:
-        return jsonlib.loads(self.data)
-
-    # this is
-    # def match_id(self):
-    #     return clustering.ClusterService.match_portal_id_with_domain(self.match_portal_id)
-
+    @classmethod
+    def fromdict(cls, dictionary) -> type:
+        return super().fromdict(dictionary)
 
 
 @define(frozen=True)
 class Statistic:
+    """
+        Class is not AbstractObject in sense of domain model.
+        This is Value Object for aggregated type Statistics.
+    """
     name = field(converter=unicode_slugify, type=str)
     home = field(type=float)
     away = field(type=float)
 
-    def json(self) -> dict:
-        """Returns self as json string"""
-        return asdict(self)  # type: ignore
 
 @define
 class Statistics(AbstractObject):
@@ -121,17 +107,31 @@ class Statistics(AbstractObject):
     def mpid(self):
         return self._match_portal_id
 
-    @staticmethod
-    def typename() -> ObjectType:
-        return ObjectType(f"stats")
+    def todict(self):
+        return {
+            "match_portal_id": self._match_portal_id,
+            "stats": [ asdict(stat) for stat in self._stats ]
+        }
 
-    def json(self):
-        return asdict(self)
+    @classmethod
+    def fromdict(cls, dictionary) -> type:
+        mpid = dictionary['match_portal_id']
+        stats = [Statistic(**s) for s in dictionary['stats']]
+        datad = {'match_portal_id': mpid, 'stats': stats}
+        return super().fromdict(datad)
+
+    def json(self) -> bytes:
+        return jsonlib.dumps(self.todict())
+
+    @classmethod
+    def fromjson(cls, string) -> type:
+        dictionary = jsonlib.loads(string)
+        return cls.fromdict(dictionary)
 
 @define
 class Match(AbstractMatch):
     match_portal_id = field(type=str)
-    when = field(type=datetime.datetime)
+    when = field(type=datetime.datetime, converter=conv.read_datetime)
     country = field(type=str, converter=unicode_slugify)
     stadium = field(type=str, converter=unicode_slugify)
     home = field(type=str, converter=unicode_slugify)
@@ -141,15 +141,16 @@ class Match(AbstractMatch):
     referee = field(type=str, converter=unicode_slugify)
     league= field(type=str, converter=unicode_slugify)
 
-    @staticmethod
-    def typename() -> ObjectType:
-        return ObjectType('match')
-
     def mpid(self) -> str:
         return self.match_portal_id
 
-    def json(self) -> dict:
-        return asdict(self)
+    def json(self) -> bytes:
+        return jsonlib.dumps(self.todict())
+
+    @classmethod
+    def fromjson(cls, string) -> type:
+        dictionary = jsonlib.loads(string)
+        return super().fromdict(dictionary)
 
     def match_id(self) -> MatchId:
         """

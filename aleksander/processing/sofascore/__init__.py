@@ -16,7 +16,7 @@ import orjson as jsonlib
 
 log = logging.getLogger("sofascore_processor")
 log.setLevel(logging.DEBUG)
-# maybe setting log level from config? # FEATURE
+
 
 @reg(pattern="www.sofascore.com/api/v1/event/[0-9]+$", model=Match)
 def match_t(url: str, body: str):
@@ -44,9 +44,15 @@ def match_t(url: str, body: str):
             referee = event["referee"]["name"],
             league = event["tournament"]["name"]
         )
-    except (KeyError, ValueError) as e:
+    except KeyError as e:
+        if e == 'current':
+            log.info("Planned matches are not processing.")
+        else:
+            log.error(e)
+            raise exc.BuildModelException(portal="sofascore", prototype=jsonlib.dumps(event).decode('utf-8'))
+    except ValueError as e:
         log.error(e)
-        raise exc.BuildModelException(portal="sofascore.com", prototype=jsonlib.dumps(event).decode('utf-8'))
+        raise exc.BuildModelException(portal="sofascore", prototype=jsonlib.dumps(event).decode('utf-8'))
 
 
 @reg(pattern="www.sofascore.com/api/v1/event/[0-9]+/statistics$", model=Statistics)
