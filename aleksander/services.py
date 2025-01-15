@@ -56,19 +56,16 @@ def saving_stored_stats(base: Service, match_id: models.MatchId, match_portal_id
     """
         Gets stats json from cache and save it in db with match_id foreign key.
     """
-    log.info("start cache2db_stats task")
     stats: models.Statistics = base.cluster.get_stored_object(match_portal_id, models.Statistics)  # type: ignore
     if not stats:
         return
     with Session(base.db.eng) as session:
         for stat in stats.data:
-            log.debug(stat)
-            s = models.Statistic.fromjson(stat)
             session.add(dbmodels.Statistic(
                 match_id = str(match_id),
-                name = s.name,
-                home = s.home,
-                away = s.away
+                name = stat.name,
+                home = stat.home,
+                away = stat.away
             ))
         session.commit()
         base.cluster.sign_object_processed(match_id, stats.typename())
@@ -97,9 +94,11 @@ def match_processing(base: Service, response_url, response_body):
             base.cluster.map_match_id(mpid, mid)
             #: Find is there temporary object for me and plan tasks for saving it.
             for m in [models.Statistics, models.Object]:
-                if base.cluster.get_stored_object(mpid, m) and not base.cluster.check_object_processed(mid, m.typename()):
+                if (base.cluster.get_stored_object(mpid, m)
+                        and not base.cluster.check_object_processed(mid, m.typename())):
                     match m.typename():
-                        case 'stats': saving_stored_stats.apply_async(args=(mid, mpid))
+                        case "Statistics": saving_stored_stats.apply_async(args=(mid, mpid))
+                        #: Add specific for others.
             if base.cluster.check_object_processed(mid, match.typename()):
                 raise exc.MatchAlreadyProcessed(match_id=mid, match_portal_id=mpid, portal="sofascore")
         except exc.BuildModelException as e:

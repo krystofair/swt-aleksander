@@ -4,6 +4,7 @@
 """
 import logging
 import functools
+from datetime import timedelta
 
 from . import configs, models, exc
 
@@ -68,6 +69,7 @@ class CacheKeysMgr:
         """
         if not p and not self.p:
             raise ValueError("One of the value has to be filled.")
+        return p
 
     def _key(self, subj: str) -> str:
         """
@@ -144,7 +146,11 @@ class ClusterService:
 
     def store_temporary(self, obj: models.AbstractObject, portal_name: str = None):
         cache_key = self.key_mgr.delayed(obj.mpid(), portal_name)
-        self.cache.hset(cache_key, obj.typename(), mapping=obj.todict())
+        value = obj.json().decode('utf-8')
+        if self.cache.hsetnx(cache_key, obj.typename(), value):
+            log.debug("Stored in cache successfully.")
+        else:
+            log.error("Stored in cache failed.")
 
     #: this type of cache is only for single worker, you know.
     @functools.cache
@@ -158,4 +164,4 @@ class ClusterService:
         #: get mapping.
         cache_key = self.key_mgr.delayed(m_portal_id, portal_name)
         mapping = self.cache.hget(cache_key, model_class.typename())
-        return model_class.fromdict(mapping) if mapping else None
+        return model_class.fromjson(mapping) if mapping else None
