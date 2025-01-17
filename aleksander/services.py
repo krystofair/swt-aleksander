@@ -115,7 +115,9 @@ def match_processing(base: Service, response_url, response_body):
                 away = match.away,
                 home_score = match.home_score,
                 away_score = match.away_score,
-                referee = match.referee
+                referee = match.referee,
+                league = match.league,
+                season = match.season
             ))
             session.commit()
             base.cluster.sign_object_processed(mid, match.typename())  # raise exception MatchAlreadyProcessed? example.

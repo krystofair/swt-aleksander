@@ -15,17 +15,20 @@ class ChangedPayloadException(Exception):
         When some part of message body does not exist.
         This describes situation when probably there were changes in portal's api.
     """
-    #: Which portal this occured?
     portal: str
+    body: bytes|str
 
 
 @define
-class BuildModelException(ChangedPayloadException):
+class BuildModelException(Exception):
     """
         Problem were there was last step of building model.
+        Raised when validation of some field failed.
     """
+    portal: str
     #: JSON from which model was trying to be built
     prototype: str
+    field: str
 
 
 @define

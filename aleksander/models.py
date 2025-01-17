@@ -3,8 +3,8 @@ import datetime
 import abc
 import logging
 
-import aleksander.utils as utils
-import aleksander.utils.converters as conv
+from aleksander import utils
+from aleksander.utils import converters, validators
 
 import slugify
 import attrs
@@ -131,7 +131,7 @@ class Statistics(AbstractObject):
 @define
 class Match(AbstractMatch):
     match_portal_id = field(type=str)
-    when = field(type=datetime.datetime, converter=conv.read_datetime)
+    when = field(type=datetime.datetime, converter=converters.read_datetime)
     country = field(type=str, converter=unicode_slugify)
     stadium = field(type=str, converter=unicode_slugify)
     home = field(type=str, converter=unicode_slugify)
@@ -140,6 +140,7 @@ class Match(AbstractMatch):
     away_score = field(type=int)
     referee = field(type=str, converter=unicode_slugify)
     league= field(type=str, converter=unicode_slugify)
+    season = field(type=str, validator=validators.match_season_format)
 
     def mpid(self) -> str:
         return self.match_portal_id
