@@ -13,8 +13,8 @@ from . import configs, services, app
 
 
 #: Initialize hydra configuration globally here, because not work with asyncio.
-with hydra.initialize(version_base=configs.VERSION_BASE, config_path="configs"):
-	CONFIG: configs.MainConfig = hydra.compose(config_name="config")  # type: ignore
+with hydra.initialize_config_dir(version_base=configs.VERSION_BASE, config_dir=configs.CONFIG_DIR_PATH):
+	CONFIG: configs.MainConfig = hydra.compose(config_name="aleksander")  # type: ignore
 
 
 log = logging.getLogger("aleksander")

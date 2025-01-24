@@ -1,11 +1,10 @@
 """
     Set of structured configs for various of objects, modules, etc.
 """
-
+import os
 from typing import List, Union, Any
 import logging
-#: Initialize logging
-logging.basicConfig(level=logging.DEBUG)
+
 
 import attrs
 import hydra
@@ -14,8 +13,21 @@ from hydra import conf
 from attrs import define, field
 
 VERSION_BASE = "1.1"
-logging.basicConfig(level=logging.DEBUG)
+    
+CONFIG_DIR_PATH = os.environ.get('ALEKSANDER_CONFIG_DIR', None)
+if CONFIG_DIR_PATH is None:
+    raise ValueError("The variable ALEKSANDER_CONFIG_DIR must be set in environment.")
 
+
+#: Initialize logging from config
+with hydra.initialize_config_dir(version_base=VERSION_BASE, config_dir=CONFIG_DIR_PATH):
+    cfg: "DbConfig" = hydra.compose(config_name="aleksander")  # type: ignore
+    DEBUG_MODE = cfg.get('debug', False)
+    logging.basicConfig(level = logging.DEBUG if DEBUG_MODE else logging.INFO)
+    
+logging.basicConfig(level=os.environ.get("", None) or logging.INFO)
+log = logging.getLogger('aleksander.config')
+log.info(f"{CONFIG_DIR_PATH=}")
 
 @define(frozen=True)
 class RedisInstance:
@@ -43,6 +55,7 @@ class PostgresConfig:
 
 class DbConfig:
     db = conf.MISSING
+    debug = False
 
 
 @define

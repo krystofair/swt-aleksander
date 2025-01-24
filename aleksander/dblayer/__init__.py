@@ -21,7 +21,7 @@ class DbMgr:
         """
             Loads configuration from yaml file by hydra.
         """
-        with hydra.initialize(version_base=VERSION_BASE, config_path="../configs"):
+        with hydra.initialize_config_dir(version_base=VERSION_BASE, config_dir=configs.CONFIG_DIR_PATH):
             cfg: configs.DbConfig = hydra.compose(config_name="db")  # type: ignore
         if not cfg:
             raise ValueError("Failure of loading configuration for database.")

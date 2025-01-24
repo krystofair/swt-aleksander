@@ -32,7 +32,7 @@ class RedisCache:
             Loads configuration from yaml file by hydra.
         """
         cfg = None
-        with hydra.initialize(version_base=configs.VERSION_BASE, config_path="configs"):
+        with hydra.initialize_config_dir(version_base=configs.VERSION_BASE, config_dir=configs.CONFIG_DIR_PATH):
             cfg = hydra.compose(config_name="redis")  # type: ignore
         if not cfg:
             raise ValueError("Failure of loading configuration for redis.")

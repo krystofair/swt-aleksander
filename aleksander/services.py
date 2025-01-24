@@ -21,7 +21,7 @@ from celery import Task
 import hydra
 
 
-with hydra.initialize(version_base=configs.VERSION_BASE, config_path="configs"):
+with hydra.initialize_config_dir(version_base=configs.VERSION_BASE, config_dir=configs.CONFIG_DIR_PATH):
     cfg = hydra.compose(config_name="redis")  # type: ignore
 
 app = celery.Celery(task_cls='aleksander.services.Service', broker=f"redis://{cfg.broker.host}:{cfg.broker.port}/0")
@@ -34,8 +34,8 @@ class Service(Task):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        with hydra.initialize(version_base=configs.VERSION_BASE, config_path='configs'):
-            use_database: str = hydra.compose(config_name='config').get('db')
+        with hydra.initialize_config_dir(version_base=configs.VERSION_BASE, config_dir=configs.CONFIG_DIR_PATH):
+            use_database: str = hydra.compose(config_name="aleksander").get('db')
 
         self.db = DbMgr(use_database)
         redis = RedisCache()
