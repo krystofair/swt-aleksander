@@ -12,10 +12,10 @@ VERSION_BASE = "1.1"
 
 class DbMgr:
 
-    def __init__(self, db_to_use):
+    def __init__(self, db_to_use, **engine_kwargs):
         self._cfg = self._configure()
         self.db_connection: DbConn = hydra.utils.instantiate(self._cfg.get(db_to_use))
-        self.engine: Engine = create_engine(self.db_connection.connstr())
+        self.engine: Engine = create_engine(self.db_connection.connstr(), **engine_kwargs)
 
     def _configure(self):
         """
