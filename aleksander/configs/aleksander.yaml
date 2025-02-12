@@ -5,7 +5,7 @@ db: postgresql
 # publisher socket where from to get data
 publisher:
   host: 127.0.0.1
-  port: 43211
+  port: 43200
 # name of the service for specific topic
 # semantic of data is divided by topic
 services:

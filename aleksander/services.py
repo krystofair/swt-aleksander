@@ -26,7 +26,8 @@ with hydra.initialize_config_dir(version_base=configs.VERSION_BASE, config_dir=c
 
 app = celery.Celery(task_cls='aleksander.services.Service', broker=f"redis://{cfg.broker.host}:{cfg.broker.port}/0")
 log = Logging(app).get_default_logger()
-log.setLevel(logging.DEBUG)
+# LogLevel set up from configs DEBUG_MODE - the question is if celery.app.log got that.?
+# log.setLevel(logging.DEBUG if configs.CONFIG.)
 
 class Service(Task):
     """

@@ -51,7 +51,7 @@ def match_t(url: str, body: str):
             season = event['season']['year'] if 'season' in event and 'year' in event['season'] else str(pre_when.year)
         )
     except KeyError as e:
-        if 'current' in str(e)
+        if 'current' in str(e):
             log.info("Planned matches are not processing.")
         else:
             log.error(e)
