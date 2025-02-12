@@ -34,7 +34,7 @@ class Match(Base):
     home_score = Column(Integer)
     away_score = Column(Integer)
     referee = Column(String)
-    league = Column(String(32))
+    league = Column(String(64))
     season = Column(String(16))  # 2024/2025; 24/25; or just year 2024; 24
 
 
