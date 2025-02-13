@@ -85,14 +85,33 @@ def match_processing(base: Service, response_url, response_body):
         try:
             match: models.Match = processor.task(response_url, response_body)
             log.debug(match.json())
-            if not isinstance(match, models.Match):
-                # TODO: inform administrator about errors in configuration somehow.
-                raise ValueError("Here processor has to return Match model.")
-            #: correlation section
             mid = match.match_id()
             mpid = match.mpid()
             log.debug(f"{mid=}, {mpid=}")
+            #: correlation section
             base.cluster.map_match_id(mpid, mid)
+            if not isinstance(match, models.Match):
+                # TODO: inform administrator about errors in configuration somehow.
+                raise ValueError("Here processor has to return Match model.")
+            #: saving in database
+            with Session(base.db.eng) as session:
+                session.add(dbmodels.Match(
+                    match_id=str(mid),
+                    when=match.when,
+                    country=match.country,
+                    stadium=match.stadium,
+                    home=match.home,
+                    away=match.away,
+                    home_score=match.home_score,
+                    away_score=match.away_score,
+                    referee=match.referee,
+                    league=match.league,
+                    season=match.season
+                ))
+                session.commit()
+                #: TODO: sign_object_processed in cache in transaction of saving in db.
+                #: For now it works like `commit()` failed then this below instruction wasn't excecute.
+                base.cluster.sign_object_processed(mid, match.typename())  # raise exception MatchAlreadyProcessed? example.
             #: Find is there temporary object for me and plan tasks for saving it.
             for m in [models.Statistics, models.Object]:
                 if (base.cluster.get_stored_object(mpid, m)
@@ -105,24 +124,8 @@ def match_processing(base: Service, response_url, response_body):
         except exc.BuildModelException as e:
             log.error(e)
             return
-        #: saving in database
-        with Session(base.db.eng) as session:
-            session.add(dbmodels.Match(
-                match_id = str(match.match_id()),
-                when = match.when,
-                country = match.country,
-                stadium = match.stadium,
-                home = match.home,
-                away = match.away,
-                home_score = match.home_score,
-                away_score = match.away_score,
-                referee = match.referee,
-                league = match.league,
-                season = match.season
-            ))
-            session.commit()
-            base.cluster.sign_object_processed(mid, match.typename())  # raise exception MatchAlreadyProcessed? example.
-
+    except exc.FeatureNotImplemented as i:
+        log.info(f"{i.feature}: {i.message}")
     except exc.MatchAlreadyProcessed as e:
         log.info(f"Match {e.match_id} (portal:{e.portal}) already processed")
     except DatabaseError as e:
