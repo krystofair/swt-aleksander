@@ -37,11 +37,20 @@ def match_t(url: str, body: str):
     try:
         #: pre initialize when field.
         pre_when = datetime.datetime.fromtimestamp(event["startTimestamp"])
+        venue = ""
+        try:
+            if 'venue' in event:
+                venue = f'{event["venue"]["city"]["name"]}:{event["venue"]["name"]}'
+            elif 'venue' in event['homeTeam']:
+                venue = event['homeTeam']["venue"]["city"]["name"]
+        except Exception as e:
+            log.warning("Cannot get venue in known ways.")
+            log.error(e)
         return Match(
             match_portal_id = event["id"],
             when = pre_when,
             country = event["tournament"]["category"]["name"],
-            stadium = f'{event["venue"]["city"]["name"]}:{event["venue"]["name"]}',
+            stadium = venue,
             home = event["homeTeam"]["name"],
             home_score = event["homeScore"]["current"],
             away = event["awayTeam"]["name"],
@@ -53,6 +62,8 @@ def match_t(url: str, body: str):
     except KeyError as e:
         if 'current' in str(e):
             log.info("Planned matches are not processing.")
+            raise exc.FeatureNotImplemented(feature='future events',
+                                            message="It could be for more automatically analysing.")
         else:
             log.error(e)
             raise exc.ChangedPayloadException(portal="sofascore", body=body)

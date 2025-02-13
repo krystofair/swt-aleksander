@@ -48,3 +48,8 @@ class ObjectAlreadyProcessed(Exception):
     """
     typename: models.ObjectType
     match_id: models.MatchId
+
+@define
+class FeatureNotImplemented(Exception):
+    feature: str
+    message: str
