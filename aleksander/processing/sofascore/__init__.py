@@ -72,7 +72,7 @@ def match_t(url: str, body: str):
         raise exc.BuildModelException(portal="sofascore", field='unknown', prototype=jsonlib.dumps(event).decode('utf-8'))
 
 
-@reg(pattern="www.sofascore.com/api/v1/event/[0-9]+/statistics$", model=Statistics)
+@reg(pattern=r"sofascore\.com/api/v1/event/[0-9]+/statistics$", model=Statistics)
 def stats_t(url: str, body: str) -> Statistics|None:
     filename = 'sofascore-stats.json'
     path = pathlib.Path(os.path.dirname(__file__)).joinpath(pathlib.Path(filename))
@@ -88,7 +88,7 @@ def stats_t(url: str, body: str) -> Statistics|None:
         stats_list = sb["statistics"]
         stats_groups = [ s["groups"] for s in stats_list if s["period"] == "ALL" ].pop(0)
         stats = list()
-        event_id = re.search("www.sofascore.com/api/v1/event/([0-9]+)/statistics$", url).group(1)
+        event_id = re.search(r"sofascore\.com/api/v1/event/([0-9]+)/statistics$", url).group(1)
         log.debug("Found event id: {}.".format(event_id))
         for group in stats_groups:
             for stat in group['statisticsItems']:
@@ -134,6 +134,8 @@ def stats_t(url: str, body: str) -> Statistics|None:
         log.error("Cannot process sofascore statistics responses as json.")
         log.error(body)
         raise exc.ChangedPayloadException(portal="sofascore", body=body)
-    except Exception:
-        raise exc.BuildModelException(portal="sofascore.com", field='unknown',
-                                      prototype=jsonlib.dumps(sb, option=jsonlib.OPT_INDENT_2).decode('utf-8'))
+    except Exception as e:
+        log.exception(e)
+        raise
+        # raise exc.BuildModelException(portal="sofascore.com", field='unknown',
+        #                               prototype=jsonlib.dumps(sb, option=jsonlib.OPT_INDENT_2).decode('utf-8'))
