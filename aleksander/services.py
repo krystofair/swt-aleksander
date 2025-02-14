@@ -178,12 +178,9 @@ def statistics_processing(base: Service, response_url, response_body, retry=0,
     except ObjectAlreadyProcessed as e:
         log.info(f"A {e.typename} already processed for {e.match_id}.")
     except DatabaseError as e:
-        log.error(f"Statistics are not saved in database, because: {e}")
-        log.info(f"Retrying this task as attempt: {retry+1}")
-        # Let's apply it again with increased `retry` parameter.
-        statistics_processing.apply_async(
-            args=(base, response_url, response_body, retry+1)
-        )
+        COUNTDOWN = 60
+        log.warning(f"Statistics are not saved in database, because: {str(e)[:32]}, will retry after {COUNTDOWN}s.")
+        raise base.retry(countdown=COUNTDOWN)  # after one minute (may change if more client will use)
     except Exception as e:
         log.exception(e)
     else:
