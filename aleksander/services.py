@@ -25,6 +25,7 @@ with hydra.initialize_config_dir(version_base=configs.VERSION_BASE, config_dir=c
     cfg = hydra.compose(config_name="redis")  # type: ignore
 
 app = celery.Celery(task_cls='aleksander.services.Service', broker=f"redis://{cfg.broker.host}:{cfg.broker.port}/0")
+app.conf.broker_connection_retry_on_startup = True
 log = Logging(app).get_default_logger()
 # LogLevel set up from configs DEBUG_MODE - the question is if celery.app.log got that.?
 # log.setLevel(logging.DEBUG if configs.CONFIG.)
@@ -93,25 +94,28 @@ def match_processing(base: Service, response_url, response_body):
             if not isinstance(match, models.Match):
                 # TODO: inform administrator about errors in configuration somehow.
                 raise ValueError("Here processor has to return Match model.")
-            #: saving in database
-            with Session(base.db.eng) as session:
-                session.add(dbmodels.Match(
-                    match_id=str(mid),
-                    when=match.when,
-                    country=match.country,
-                    stadium=match.stadium,
-                    home=match.home,
-                    away=match.away,
-                    home_score=match.home_score,
-                    away_score=match.away_score,
-                    referee=match.referee,
-                    league=match.league,
-                    season=match.season
-                ))
-                session.commit()
-                #: TODO: sign_object_processed in cache in transaction of saving in db.
-                #: For now it works like `commit()` failed then this below instruction wasn't excecute.
-                base.cluster.sign_object_processed(mid, match.typename())  # raise exception MatchAlreadyProcessed? example.
+            #: is match already processed?
+            if not base.cluster.check_object_processed(mid, match.typename()):
+                # raise exc.MatchAlreadyProcessed(match_id=mid, match_portal_id=mpid, portal="sofascore")
+                #: saving in database
+                with Session(base.db.eng) as session:
+                    session.add(dbmodels.Match(
+                        match_id=str(mid),
+                        when=match.when,
+                        country=match.country,
+                        stadium=match.stadium,
+                        home=match.home,
+                        away=match.away,
+                        home_score=match.home_score,
+                        away_score=match.away_score,
+                        referee=match.referee,
+                        league=match.league,
+                        season=match.season
+                    ))
+                    session.commit()
+                    #: TODO: sign_object_processed in cache in transaction of saving in db.
+                    #: For now it works like `commit()` failed then this below instruction wasn't excecute.
+                    base.cluster.sign_object_processed(mid, match.typename())
             #: Find is there temporary object for me and plan tasks for saving it.
             for m in [models.Statistics, models.Object]:
                 if (base.cluster.get_stored_object(mpid, m)
@@ -119,8 +123,6 @@ def match_processing(base: Service, response_url, response_body):
                     match m.typename():
                         case "Statistics": saving_stored_stats.apply_async(args=(mid, mpid))
                         #: Add specific for others.
-            if base.cluster.check_object_processed(mid, match.typename()):
-                raise exc.MatchAlreadyProcessed(match_id=mid, match_portal_id=mpid, portal="sofascore")
         except exc.BuildModelException as e:
             log.error(e)
             return
@@ -147,6 +149,8 @@ def statistics_processing(base: Service, response_url, response_body):
         log.debug(f"{match_id=}")
         if match_id and base.cluster.check_object_processed(match_id, stats.typename()):
             raise ObjectAlreadyProcessed(stats.typename(), match_id)
+        # TODO: additional unique in db for name+match_id should be, there are
+        # duplicates.
         if not match_id:
             # save statistics only in cache.
             log.debug(stats)
@@ -167,9 +171,11 @@ def statistics_processing(base: Service, response_url, response_body):
                 session.commit()
                 base.cluster.sign_object_processed(match_id, stats.typename())
     except ObjectAlreadyProcessed as e:
-        log.info(e)
+        log.info(f"A {e.typename} already processed for {e.match_id}.")
     except DatabaseError as e:
-        log.error(f"Statistics are not saved in database, because: {e}")
+        COUNTDOWN = 60
+        log.warning(f"Statistics are not saved in database, because: {str(e)[:32]}, will retry after {COUNTDOWN}s.")
+        raise base.retry(countdown=COUNTDOWN)  # after one minute (may change if more client will use)
     except Exception as e:
         log.exception(e)
     else:
