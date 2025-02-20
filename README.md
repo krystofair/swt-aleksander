@@ -28,6 +28,3 @@ Create virtual environment for this and `source` it
 ### Infrastructure
 * Redis
 * Postgres
-
-# To Do
-1. Utworzyć Docker Compose lub paczkę HELM'a w celu łatwego wdrażania kolejnych wersji oraz samego uruchamiania.
