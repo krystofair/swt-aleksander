@@ -46,7 +46,7 @@ class FootballMatchFragments:
     }
 
     @define
-    class Frag1:
+    class HtmlHash:
         #: Must be in all fragments
         match_portal_id = field(type=str)
         country = field(type=str, converter=unicode_slugify)
@@ -65,7 +65,7 @@ class FootballMatchFragments:
         away_score = field(type=int)
     
     FRAGMENTS = [
-        Frag1,
+        HtmlHash,
         DC_1
     ]
 
@@ -114,23 +114,6 @@ class FootballMatchBuilder:
         else:
             raise TypeError("You r idiot or what? xD")
 
-    # def add(self, frag_data, nr=-1):
-    #     """Add new fragment to builder."""
-    #     try:
-    #         try:
-    #             nr, str_data = FootballMatchFragments.new(frag_data)
-    #         except ValueError:
-    #             if isinstance(frag_data, str):
-    #                 if nr < 0:
-    #                     raise ValueError("Number of fragment must be determined if data is `str` type.")
-    #                 str_data = frag_data
-    #             else:
-    #                 raise TypeError("Fragment data has to be attrs instance or str.")
-    #         self.fragments.append({"NR": nr, "DATA": str_data})
-    #     except jsonlib.JSONEncodeError as e:
-    #         log.exception(e)
-    #         raise
-
     @classmethod
     def collect(self):
         """
@@ -144,35 +127,16 @@ class FootballMatchBuilder:
                  for nr, key in enumerate(keys)
                  if self.cache.hget(collection_key, nr+1) ]
 
-    # def frag_collection(self, cache=False):
-    #     """
-    #         Build collection of True|False values,
-    #         where True is when NR of Fragment is equal index from FRAGMENTS.
-    #         self.fragments have to be sorted by NR.
-    #         Arguments:
-    #             cache: Pull out object from cache.
-    #     """
-    #     if not cache:
-    #         frag_collection = [
-    #             f[0]['NR'] == FRAG[1]   # collect True|False
-    #             for f, FRAG in itertools.zip_longest(
-    #             # building sorted list of tuples for fillvalue works
-    #             [(x, x) for x in sorted(self.fragments, key=lambda x: x['NR'])],
-    #             # enumerate FRAGMENTS as is, cause they are in correct order
-    #             enumerate(FootballMatchFragments.FRAGMENTS)
-    #             # fill with False when some elements is lacking
-    #             fillvalue=[False, False]
-    #         )]
-    #     else:
-    #         frag_collection = self.cache.hgetall()
-    #     return frag_collection
-
-    # @staticmethod
-    # def check_fragments(frag_collection):
-    #     """Check if we have enough fragments in cache to create match instance."""
-    #     if len(frag_collection) < len(FootballMatchFragments.FRAGMENTS):
-    #         return False
-    #     return all(frag_collection)
+    def check_fragments(self):
+        """Check if we have enough fragments in cache to create match instance."""
+        for i in range(1, len(FootballMatchFragments.FRAGMENTS)+1):
+            key = self.key_mgr.collection()
+            if not self.cache.hget(key, i):
+                log.debug(f"Not found fragment nr {i}")
+                break
+        else:
+            return True
+        return False
 
     def save(self):
         for f in self.fragments:
@@ -192,12 +156,11 @@ class FootballMatchBuilder:
         match = {}
         try:
             for frag_dict in sorted(self.collect(), key=lambda x: x['NR']):
+                py_obj = {}
                 _, data = frag_dict.values()
                 py_obj = jsonlib.loads(data)
                 match |= py_obj
-                py_obj = {}
         except Exception as e:
             log.exception(e)
             raise
-
         return Match(**match, season="??", stadium="??", referee="??")
