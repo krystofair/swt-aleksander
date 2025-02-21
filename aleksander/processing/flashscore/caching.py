@@ -1,14 +1,17 @@
 import copy
 import itertools
 import typing
+import datetime
 
 from aleksander import clustering, models
-from aleksander.clustering import redis.Redis
+from aleksander.models import unicode_slugify
+from aleksander.utils import converters, validators
 
+import redis
 import orjson as jsonlib
 from attrs import define, field, asdict
 
-class FragmentsKeysMgr(clustering.CacheKeyMgr):
+class FragmentsKeysMgr(clustering.CacheKeysMgr):
     """Inherit from CacheKeyMgr, to sign that logic is similar"""
     keys = {
         'fragment': "FRAGMENT({frag_nr},{object_portal_id},{typename})",
@@ -55,15 +58,15 @@ class FootballMatchFragments:
         #season = field(type=str, validator=validators.match_season_format)
 
     @define
-    class Frag2:
+    class DC_1:
         match_portal_id = field(type=str)
         when = field(type=datetime.datetime, converter=converters.read_datetime)
         home_score = field(type=int)
         away_score = field(type=int)
     
     FRAGMENTS = [
-        FootballMatchFragments.Frag1,
-        FootballMatchFragments.Frag2
+        Frag1,
+        DC_1
     ]
 
     @classmethod
@@ -99,9 +102,9 @@ class FootballMatchBuilder:
                           many fragments is lacking.
     """
     
-    def __init__(self, match_portal_id, cache_class=RedisCache):
+    def __init__(self, match_portal_id, cache):
         self.key_mgr = FragmentsKeysMgr(match_portal_id, models.Match.typename())
-        self.cache = self.C = cache_class.instance()
+        self.cache = self.C = cache.instance()
         self.match_portal_id = match_portal_id
         self.fragments = list()
 
@@ -171,7 +174,7 @@ class FootballMatchBuilder:
     #         return False
     #     return all(frag_collection)
 
-    def save(self)
+    def save(self):
         for f in self.fragments:
             nr, _ = FootballMatchFragments.new(f)
             if self.cache.hget(self.key_mgr.collection(), nr):

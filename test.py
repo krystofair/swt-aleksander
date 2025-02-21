@@ -2,10 +2,14 @@ import datetime
 import subprocess
 import unittest
 import logging
+from pathlib import Path
 
 from aleksander import dblayer, services, processing
 from aleksander.clustering import RedisCache, ClusterService
 from aleksander.models import Statistic, MatchId, Statistics, Match
+from aleksander.processing import flashscore
+from aleksander.processing.flashscore import raw
+
 
 from omegaconf import OmegaConf
 from sqlalchemy.orm import Session
@@ -128,3 +132,28 @@ class TestServiceLayer(unittest.TestCase):
 
     def test_get_access_to_cache(self):
         pass
+
+
+class TestFlashProcessor(unittest.TestCase):
+    def setUp(self):
+        self.FLOWS_TO_TEST = Path('/d/swt001/flashflows/')
+    
+    def test_parse_raw_data_subst(self):
+        flowpath = Path.joinpath(self.FLOWS_TO_TEST, 'substitutions.raw')
+        with open(flowpath, 'r', encoding='utf-8') as f:
+            raw_data = f.read()
+        list_parsed = list(raw(raw_data))
+        assert list_parsed[2].getall("IF") == ["Adebayo E.", "Brown J."], list_parsed[2]
+
+    def test_get_data_from_dc_1_fragment(self):
+        flowpath = Path.joinpath(self.FLOWS_TO_TEST, 'bodo-match-results.raw')
+        with open(flowpath, 'r', encoding='utf-8') as f:
+            raw_data = f.read()
+        cache_mock = lambda: 42
+        cache_mock.instance = lambda: 42
+        builder = flashscore.FootballMatchBuilder('testowe_id', cache_mock)
+        builder = flashscore.dc_1_fragment(builder, raw_data)
+        assert builder is not None
+        assert builder.fragments[0].when == datetime.datetime(2025, 2, 20, 18, 45), builder.fragments[0].when
+        assert builder.fragments[0].away_score == 2, builder.fragments[0].away_score
+        assert builder.fragments[0].home_score == 5, builder.fragments[0].home_score
