@@ -1,0 +1,72 @@
+{
+    "event_id_c": "Uo9T4xDk",
+    "event_info": {
+        "hasPlayerStats": true,
+        "hasStats": true,
+        "hasMissingPlayers": true
+    },
+    "sport_id": 1,
+    "super_template_id": 0,
+    "sport_name": "Football",
+    "sport_url": "/football/",
+    "sport": "soccer",
+    "header": {
+        "project_name_class": "flashscore-com-white",
+        "root_url": "/",
+        "flag_id": 6,
+        "tournament": {
+            "category": "EUROPE",
+            "link": "/football/europe/europa-league/",
+            "tournament": "Europa League - Play Offs - 1/16-finals"
+        }
+    },
+    "participantsData": {
+        "home": [
+            {
+                "id": "S0WZMUNG",
+                "eventParticipantId": "OKwkjcaD",
+                "sport_id": 1,
+                "name": "Bodo/Glimt",
+                "short_name": "Bodo/Glimt",
+                "url_name": "bodo-glimt",
+                "image_path": "https://static.flashscore.com/res/image/data/KKvh8Yjl-nJtu1LWt.png",
+                "small_image_path": "https://static.flashscore.com/res/image/data/CCIKVSlC-nJtu1LWt.png",
+                "detail_link": "/team/bodo-glimt/S0WZMUNG",
+                "rank": [],
+                "country": "",
+                "country_id": 145,
+                "three_char_name": "BOD",
+                "birthday_timestamp": "",
+                "team": "",
+                "is_team": true
+            }
+        ],
+        "away": [
+            {
+                "id": "dhOKTHGA",
+                "eventParticipantId": "GfzshJU0",
+                "sport_id": 1,
+                "name": "Twente",
+                "short_name": "Twente",
+                "url_name": "twente",
+                "image_path": "https://static.flashscore.com/res/image/data/n9hVHBcM-4vob7cTR.png",
+                "small_image_path": "https://static.flashscore.com/res/image/data/Uo9lu6le-4vob7cTR.png",
+                "detail_link": "/team/twente/dhOKTHGA",
+                "rank": [],
+                "country": "",
+                "country_id": 139,
+                "three_char_name": "TWE",
+                "birthday_timestamp": "",
+                "team": "",
+                "is_team": true
+            }
+        ],
+        "sport_id": 1,
+        "is_national": false
+    },
+    "eventParticipantEncodedId": "ltB92yKu",
+    "initialDataLayer": "{\"event\":\"pageinfo\",\"sport\":\"soccer\",\"type\":\"detail_page\",\"id\":\"Uo9T4xDk\",\"stage\":\"KlKyIzOo\",\"tournament\":\"fLWNsJXD\"}",
+    "project_id": 2,
+    "speedCurveSubdivisionsNeeded": false,
+    "eventPreview": null
+}
