@@ -83,8 +83,9 @@ def match_processing(base: Service, response_url, response_body):
                 url=response_url,
                 ps=', '.join([str(t) for t in processing.reg.entries])
             ))
+            return
         try:
-            match: models.Match = processor.task(response_url, response_body)
+            match = processor.task(response_url, response_body)
             log.debug(match.json())
             mid = match.match_id()
             mpid = match.mpid()
@@ -123,6 +124,9 @@ def match_processing(base: Service, response_url, response_body):
                     match m.typename():
                         case "Statistics": saving_stored_stats.apply_async(args=(mid, mpid))
                         #: Add specific for others.
+        except exc.FragmentCached as e:
+            log.info(f"Fragment sucessfully cached: {e}")
+            return
         except exc.BuildModelException as e:
             log.error(e)
             return

@@ -22,7 +22,7 @@ log = logging.getLogger("FlashscoreProcessor")
 
 
 @reg(r"www\.flashscore\.com/match/([0-9a-zA-Z]+)/?$", Match)
-@reg(r"feed/dc_1_([0-9a-zA-Z]+)$", Match)
+@reg(r"feed/dc_1_([0-9a-zA-Z]+)/?$", Match)
 def match_t(url, body) -> Match:
     """
         This will raise FragmentCached, for inform that all goes successfully.
@@ -31,7 +31,7 @@ def match_t(url, body) -> Match:
     fragment = None
     try:
         object_id, parser = frags.pick_right_fragment_func(url)
-        fragment = parser(body)
+        fragment = parser(object_id, body)
     except Exception as e:
         log.exception(e)
         raise

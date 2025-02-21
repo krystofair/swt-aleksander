@@ -40,7 +40,9 @@ def dc_1_fragment(object_portal_id: str, body: str):
                 break #: Dont want more groups
             for field, key in parts.items():
                 frag_dict.update({field: group.get(key)})
-        fragment = FMF.DC_1(**frag_dict)
+        # XXX season wasn't find yet in analysis of streams from portal
+        fragment = FMF.DC_1(**frag_dict, season="00/00")
+        fragment.season=str(fragment.when.year)
     except (ValueError, KeyError) as e:
         log.error(e)
     except Exception as e:

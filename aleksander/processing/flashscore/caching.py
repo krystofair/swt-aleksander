@@ -2,6 +2,7 @@ import copy
 import itertools
 import typing
 import datetime
+import logging
 
 from aleksander import clustering, models
 from aleksander.models import unicode_slugify
@@ -11,11 +12,14 @@ import redis
 import orjson as jsonlib
 from attrs import define, field, asdict
 
+log = logging.getLogger(__name__)
+
+
 class FragmentsKeysMgr(clustering.CacheKeysMgr):
     """Inherit from CacheKeyMgr, to sign that logic is similar"""
     keys = {
         'fragment': "FRAGMENT({frag_nr},{object_portal_id},{typename})",
-        'collection': "FRAG_COLLECTION({object_portal_id},{typename}})"
+        'collection': "FRAG_COLLECTION({object_portal_id},{typename})"
     }
 
     def __init__(self, obj_portal_id, obj_type):
@@ -63,6 +67,7 @@ class FootballMatchFragments:
         when = field(type=datetime.datetime, converter=converters.read_datetime)
         home_score = field(type=int)
         away_score = field(type=int)
+        season = field(type=str)
     
     FRAGMENTS = [
         HtmlHash,
@@ -72,7 +77,7 @@ class FootballMatchFragments:
     @classmethod
     def new(cls, frag):
         try:
-            nr = list(map(lambda x: isinstance(frag_data, x), cls.FRAGMENTS)).index(True) + 1
+            nr = list(map(lambda x: isinstance(frag, x), cls.FRAGMENTS)).index(True) + 1
         except ValueError:
             raise TypeError(f"Cannot create FRAGMENT_CLASS from {type(frag)}({frag}).")
         frag_dict = asdict(frag)
@@ -112,9 +117,8 @@ class FootballMatchBuilder:
         if isinstance(fragment, tuple(FootballMatchFragments.FRAGMENTS)):
             self.fragments.append(fragment)
         else:
-            raise TypeError("You r idiot or what? xD")
+            raise TypeError("Cannot add fragment, {}".format(type(fragment)))
 
-    @classmethod
     def collect(self):
         """
             Collect stored fragments in (REDIS) cache.
@@ -140,8 +144,8 @@ class FootballMatchBuilder:
 
     def save(self):
         for f in self.fragments:
-            nr, _ = FootballMatchFragments.new(f)
-            if self.cache.hget(self.key_mgr.collection(), nr):
+            nr, _ = FootballMatchFragments.new(f).values()
+            if not self.cache.hget(self.key_mgr.collection(), nr):
                 FootballMatchFragments.cache_fragment(f, self.cache)
     
     def delete(self):
@@ -152,7 +156,7 @@ class FootballMatchBuilder:
         self.cache.delete(*keys)
         self.cache.hdel(collection_key, *range(1, len(keys)+1))
 
-    def build():
+    def build(self):
         match = {}
         try:
             for frag_dict in sorted(self.collect(), key=lambda x: x['NR']):
@@ -163,4 +167,4 @@ class FootballMatchBuilder:
         except Exception as e:
             log.exception(e)
             raise
-        return Match(**match, season="??", stadium="??", referee="??")
+        return models.Match(**match, stadium="??", referee="??")
