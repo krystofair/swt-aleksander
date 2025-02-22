@@ -20,5 +20,5 @@ def match_season_format(instance, attribute, value):
         # raise exc.BuildModelException(portal='sofascore', field=attribute.name, prototype=instance.json())
     if not re.match(pattern, value.strip()):
         #: as ValueError
-        raise ValueError(f"Value of season does not fulfil requirement: {value}")
+        raise ValueError(f"Value of season does not fulfill requirement: {value}")
         # raise exc.BuildModelException(portal='sofascore', field=attribute.name, prototype=instance.json())
