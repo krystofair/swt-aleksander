@@ -2,13 +2,18 @@ import datetime
 import subprocess
 import unittest
 import logging
+from pathlib import Path
 
 from aleksander import dblayer, services, processing
 from aleksander.clustering import RedisCache, ClusterService
 from aleksander.models import Statistic, MatchId, Statistics, Match
+from aleksander.processing import flashscore
+from aleksander.processing.flashscore.utils import raw
+
 
 from omegaconf import OmegaConf
 from sqlalchemy.orm import Session
+import sqlalchemy as sa
 import orjson as jsonlib
 
 
@@ -103,6 +108,19 @@ class TestServiceLayer(unittest.TestCase):
     def setUp(self):
         # TODO: preparation test database for do it full automatically.
         pass
+    def tearDown(self):
+        @services.app.task(bind=True)
+        def example_task(base: services.Service):
+            log.debug("start example task")
+            try:
+                with Session(base.db.eng) as session:
+                    stmt = sa.delete(Match).where(Match.match_id == "TESTOWYMECZ")
+                    session.execute(stmt)
+                    session.commit()
+            except Exception as e:
+                log.error(e)
+        result = example_task.apply()
+        log.info(result.result)
 
     def test_get_access_to_db(self):
         @services.app.task(bind=True)
@@ -110,6 +128,7 @@ class TestServiceLayer(unittest.TestCase):
             log.debug("start example task")
             try:
                 m = dblayer.models.Match(when=datetime.datetime(2023, 8, 1, 18, 0),
+                                         match_id="TESTOWYMECZ",
                                          country="poland",
                                          stadium="narodowy",
                                          home='Polska',
@@ -124,7 +143,43 @@ class TestServiceLayer(unittest.TestCase):
             return 'koniec'
 
         result = example_task.apply()
-        assert result.result == 'koniec'
+        assert result.result == 'koniec', result.result
 
     def test_get_access_to_cache(self):
         pass
+
+
+class TestFlashProcessor(unittest.TestCase):
+    def setUp(self):
+        self.FLOWS_TO_TEST = Path('/d/swt001/flashflows/')
+    
+    def test_parse_raw_data_subst(self):
+        flowpath = Path.joinpath(self.FLOWS_TO_TEST, 'substitutions.raw')
+        with open(flowpath, 'r', encoding='utf-8') as f:
+            raw_data = f.read()
+        list_parsed = list(raw(raw_data))
+        assert list_parsed[2].getall("IF") == ["Adebayo E.", "Brown J."], list_parsed[2]
+
+    def test_get_data_from_dc_1_fragment(self):
+        flowpath = Path.joinpath(self.FLOWS_TO_TEST, 'bodo-match-results.raw')
+        with open(flowpath, 'r', encoding='utf-8') as f:
+            raw_data = f.read()
+        cache_mock = lambda: 42
+        cache_mock.instance = lambda: 42
+        builder = flashscore.FootballMatchBuilder('testowe_id', cache_mock)
+        fragment = flashscore.frags.dc_1_fragment('testowe_id', raw_data)
+        assert builder is not None
+        assert fragment.when == datetime.datetime(2025, 2, 20, 18, 45), fragment.when
+        assert fragment.away_score == '2', fragment.away_score
+        assert fragment.home_score == '5', fragment.home_score
+
+    def test_get_data_from_html_fragment(self):
+        flowpath = Path.joinpath(self.FLOWS_TO_TEST, 'match_ALQHQfvK.html')
+        with open(flowpath, 'r', encoding='utf-8') as f:
+            html_data = f.read()
+        cache_mock = lambda: 42
+        cache_mock.instance = lambda: 42
+        builder = flashscore.FootballMatchBuilder('ALQHQfvK', cache_mock)
+        fragment = flashscore.frags.html_fragment('ALQHQfvK', html_data)
+        assert fragment.home == 'as-roma', fragment.home
+        assert fragment.away == 'atalanta', fragment.away

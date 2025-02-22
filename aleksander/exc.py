@@ -53,3 +53,11 @@ class ObjectAlreadyProcessed(Exception):
 class FeatureNotImplemented(Exception):
     feature: str
     message: str
+
+@define
+class FragmentCached(BuildModelException):
+    """
+        Describing that only parts of specific objects was parsed,
+        but it is enough, we have cache for exactly that situation.
+    """
+    fragment: str

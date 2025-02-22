@@ -1,5 +1,7 @@
 # debug mode
 debug: true
+# It's for idea about saving big body errors in single file and logs path to it.
+log_payloads_dir: /tmp/aleksander/
 # selection of currently used database
 db: postgresql
 # publisher socket where from to get data
