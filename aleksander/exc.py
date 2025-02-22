@@ -6,8 +6,6 @@
 """
 from attrs import define
 
-from . import models
-
 
 @define
 class ChangedPayloadException(Exception):
@@ -36,7 +34,7 @@ class MatchAlreadyProcessed(Exception):
     """
         Match Already Processed so
     """
-    match_id: models.MatchId
+    match_id: str
     match_portal_id: str
     portal: str
 
@@ -46,8 +44,8 @@ class ObjectAlreadyProcessed(Exception):
     """
         Some object is already collected.
     """
-    typename: models.ObjectType
-    match_id: models.MatchId
+    typename: str
+    match_id: str
 
 @define
 class FeatureNotImplemented(Exception):

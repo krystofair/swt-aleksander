@@ -131,7 +131,9 @@ class Statistics(AbstractObject):
 @define
 class Match(AbstractMatch):
     match_portal_id = field(type=str)
-    when = field(type=datetime.datetime, converter=converters.read_datetime)
+    when = field(type=datetime.datetime,
+                 converter=converters.read_datetime,
+                 validator=validators.now_is_after_3h_since_it)
     country = field(type=str, converter=unicode_slugify)
     stadium = field(type=str, converter=unicode_slugify)
     home = field(type=str, converter=unicode_slugify)

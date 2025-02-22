@@ -55,9 +55,6 @@ def html_fragment(object_portal_id: str, body: str):
     py_obj = utils.cut_json_from_html_fragment(body)
     fragment = None
     try:
-        if py_obj.get('event_info', {}).get('hasStats', None) is None:
-            raise FeatureNotImplemented(feature="future events",
-                                        message="Find future match in flashscore.")
         if object_portal_id != py_obj['event_id_c']:
             raise exc.BuildModelException(portal='flashscore', field='event_id_c', prototype='An event_id is diffrent than passed.')
         match = {

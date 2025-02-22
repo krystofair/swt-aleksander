@@ -134,7 +134,7 @@ def match_processing(base: Service, response_url, response_body):
     except DatabaseError as e:
         log.error(f"DatabaseError: {e}")
     except Exception as e:
-        log.error(e)
+        log.exception(e)
     else:
         log.info('match processed correctly and saved in database')
 
