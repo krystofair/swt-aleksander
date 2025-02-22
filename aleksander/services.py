@@ -27,8 +27,6 @@ with hydra.initialize_config_dir(version_base=configs.VERSION_BASE, config_dir=c
 app = celery.Celery(task_cls='aleksander.services.Service', broker=f"redis://{cfg.broker.host}:{cfg.broker.port}/0")
 app.conf.broker_connection_retry_on_startup = True
 log = Logging(app).get_default_logger()
-# LogLevel set up from configs DEBUG_MODE - the question is if celery.app.log got that.?
-# log.setLevel(logging.DEBUG if configs.CONFIG.)
 
 class Service(Task):
     """
@@ -38,7 +36,6 @@ class Service(Task):
         super().__init__(*args, **kwargs)
         with hydra.initialize_config_dir(version_base=configs.VERSION_BASE, config_dir=configs.CONFIG_DIR_PATH):
             use_database: str = hydra.compose(config_name="aleksander").get('db')
-
         self.db = DbMgr(use_database)
         redis = RedisCache()
         self.cluster = ClusterService(redis)
@@ -78,6 +75,7 @@ def saving_stored_stats(base: Service, match_id: models.MatchId, match_portal_id
 def match_processing(base: Service, response_url, response_body):
     try:
         processor = processing.reg.select(response_url)
+        log.debug(f"Found processor {processor!r}")
         if not processor:
             log.warning("Processor not found for url: '{url}'. All processors accessible: {ps}".format(
                 url=response_url,
@@ -126,7 +124,6 @@ def match_processing(base: Service, response_url, response_body):
                         #: Add specific for others.
         except exc.FragmentCached as e:
             log.info(f"Fragment sucessfully cached: {e}")
-            return
         except exc.BuildModelException as e:
             log.error(e)
             return

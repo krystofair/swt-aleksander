@@ -36,7 +36,7 @@ def dc_1_fragment(object_portal_id: str, body: str):
         frag_dict = {'match_portal_id': object_portal_id}
         for i, group in enumerate(utils.raw(body)):
             if i > 0:
-                log.info("There were more groups. Next would be {}".format(group))
+                log.info("Dont parse more groups in DC_1 fragment.")
                 break #: Dont want more groups
             for field, key in parts.items():
                 frag_dict.update({field: group.get(key)})
