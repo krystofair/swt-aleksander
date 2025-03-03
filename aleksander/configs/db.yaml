@@ -1,0 +1,11 @@
+postgresql:
+  _target_: aleksander.dblayer.PostgreSQLConnection
+  dbname: postgres
+  host: 127.0.0.1
+  port: 37555
+  user: postgres
+  password: usmiechnieci123
+
+sqlite:
+  _target_: aleksander.dblayer.SqliteConnection
+  path: ":memory:"

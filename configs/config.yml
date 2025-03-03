@@ -1,6 +1,0 @@
-subscriber:
-  sockets:
-    - topic: flashscore.html
-      sockopts:
-        - high water mark but now dont know how.
-    - topic: flashscore.stream

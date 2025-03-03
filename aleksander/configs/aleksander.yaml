@@ -1,0 +1,18 @@
+# debug mode
+debug: true
+# It's for idea about saving big body errors in single file and logs path to it.
+log_payloads_dir: /tmp/aleksander/
+# selection of currently used database
+db: postgresql
+# publisher socket where from to get data
+publisher:
+  host: 127.0.0.1
+  port: 43200
+# name of the service for specific topic
+# semantic of data is divided by topic
+services:
+  - name: match_processing
+    topic: sofascore.events
+
+  - name: statistics_processing
+    topic: sofascore.stats

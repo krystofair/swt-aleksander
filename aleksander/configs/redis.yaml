@@ -1,0 +1,9 @@
+# redis instance for caching
+cache:
+  host: 127.0.0.1
+  port: 4601
+
+# redis instance for celery broker
+broker:
+  host: localhost
+  port: 4602
