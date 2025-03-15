@@ -33,7 +33,7 @@ def match_t(url, body) -> Match:
     log.info("start match_t from flashscore")
     fragment = None
     try:
-        object_id, parser = frags.pick_right_fragment_func(url)
+        parser, object_id = frags.pick_right_fragment_func(url)
         fragment = parser(object_id, body)
     except Exception as e:
         log.exception(e)

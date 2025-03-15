@@ -10,14 +10,18 @@ log = logging.getLogger(__name__)
 
 
 def pick_right_fragment_func(url):
+    """
+        Returns fragment_parser_func with event_id/object_id in tuple.
+    """
     func_regex = [
         (html_fragment, r"www\.flashscore\.com/match/([0-9a-zA-Z]+)/?$"),
         (dc_1_fragment, r"feed/dc_1_([0-9a-zA-Z]+)$")
     ]
     for func, regex in func_regex:
         if m := re.search(regex, url):
-            return (m.group(1), func)
-    log.info("Not found right fragment function to process data.")
+            # return (m.group(1), func)
+            return (func, m.group(1))
+    log.warning("Not found right fragment function to process data.")
     return None
 
 
