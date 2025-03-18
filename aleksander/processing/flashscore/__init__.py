@@ -35,11 +35,23 @@ def match_t(url, body) -> Match:
     try:
         parser, object_id = frags.pick_right_fragment_func(url)
         fragment = parser(object_id, body)
+    except exc.BuildModelException as e:
+        if e.field == 'scores':
+            log.info("Exception handled, scores in this fragment were wrong,"
+                     " wait for another fragment.")
+            log.info(f"URL for what the fragment was wrong: {url}.")
+            #: Fragment not cached, but error handled, so we don't pass this
+            #  error further.
+            raise exc.FragmentCached(portal='flashscore', fragment='DC_1',
+                                     field='scores', prototype='')
+        else:
+            raise
+
     except Exception as e:
         log.exception(e)
         raise
     if fragment:
-        log.debug("Fragment parsed properly.")
+        log.info("Fragment parsed properly.")
         builder = FootballMatchBuilder(object_id, RedisCache())
         builder.add(fragment)
         builder.save()
@@ -116,7 +128,7 @@ class FootballStatParser:
                         self.eff_stats_delay_buffer.appendleft(stat_list_cleared[1])
                     return stat_list_cleared[0]
         except ValueError as e:
-            log.error(f"Parsing failure with {parse_error}")
+            log.error(f"Parsing failure with {e}")
             log.info("Statistics skipped.")
         raise ValueError('Returning None from FootballStatParser\'s __next__ method')
     
@@ -153,7 +165,7 @@ class FootballStatParser:
                     raise ValueError("State is not defined")
                 new_stat[names_code_map[code]] = value
         #: variable `code` will be last set from for, so when processing group
-        #  with state to change, this will be raise an not valid exception.
+        #  with state to change, this will raise and not valid exception.
         if len(new_stat) < len(names_code_map):
             raise ValueError("Stat not fully processed.")
         return new_stat

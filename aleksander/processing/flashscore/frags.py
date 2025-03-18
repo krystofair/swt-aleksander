@@ -36,8 +36,8 @@ def dc_1_fragment(object_portal_id: str, body: str):
         "away_score": "DF"
     }
     fragment = None
+    frag_dict = {'match_portal_id': object_portal_id}
     try:
-        frag_dict = {'match_portal_id': object_portal_id}
         for i, group in enumerate(utils.raw(body)):
             if i > 0:
                 log.info("Dont parse more groups in DC_1 fragment.")
@@ -47,6 +47,13 @@ def dc_1_fragment(object_portal_id: str, body: str):
         # XXX season wasn't find yet in analysis of streams from portal
         fragment = FMF.DC_1(**frag_dict, season="00/00")
         fragment.season=str(fragment.when.year)
+        #: validation
+        try:
+            int(fragment.home_score)
+            int(fragment.away_score)
+        except (ValueError, TypeError):
+            raise exc.BuildModelException(portal='flashscore', field='scores',
+                                          prototype=str(frag_dict))
     except (ValueError, KeyError) as e:
         log.error(e)
     except Exception as e:

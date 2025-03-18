@@ -160,7 +160,6 @@ class FootballMatchBuilder:
         match = {}
         try:
             for frag_dict in sorted(self.collect(), key=lambda x: x['NR']):
-                py_obj = {}
                 _, data = frag_dict.values()
                 py_obj = jsonlib.loads(data)
                 match |= py_obj
