@@ -7,6 +7,7 @@ import logging
 from aleksander import clustering, models
 from aleksander.models import unicode_slugify
 from aleksander.utils import converters, validators
+from .utils import cut_round_in_league_converter
 
 import redis
 import orjson as jsonlib
@@ -57,7 +58,7 @@ class FootballMatchFragments:
         # stadium = field(type=str, converter=unicode_slugify)
         home = field(type=str, converter=unicode_slugify)
         away = field(type=str, converter=unicode_slugify)
-        league = field(type=str, converter=unicode_slugify)
+        league = field(type=str, converter=cut_round_in_league_converter)
         #: Trzeba będzie wyciągac sezon z daty. - napisac sobie taki utils.
         #season = field(type=str, validator=validators.match_season_format)
 
@@ -160,7 +161,6 @@ class FootballMatchBuilder:
         match = {}
         try:
             for frag_dict in sorted(self.collect(), key=lambda x: x['NR']):
-                py_obj = {}
                 _, data = frag_dict.values()
                 py_obj = jsonlib.loads(data)
                 match |= py_obj

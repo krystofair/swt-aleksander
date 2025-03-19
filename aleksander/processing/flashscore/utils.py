@@ -6,6 +6,7 @@ import copy
 
 import orjson as jsonlib
 import multidict
+from slugify import slugify
 
 from aleksander import exc
 from aleksander.utils import converters
@@ -105,3 +106,11 @@ def to_float(x):
         else:
             return float(x)
     raise TypeError(x)
+
+def cut_round_in_league_converter(league):
+    """Slugify league and cut off a "-round-[0-9]+" suffix."""
+    l = slugify(league)
+    if "-round" in l:
+        start_round_index = l.index("-round") + 1
+        return l[:start_round_index]
+    return l
