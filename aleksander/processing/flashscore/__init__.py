@@ -149,7 +149,6 @@ class FootballStatParser:
                 self.end = True
                 raise StopIteration()
 
-
     def _clear_stat(self, stat):
         stat['home'] = utils.to_float(stat['home'])
         stat['away'] = utils.to_float(stat['away'])

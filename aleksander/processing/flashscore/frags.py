@@ -48,14 +48,15 @@ def dc_1_fragment(object_portal_id: str, body: str):
         fragment = FMF.DC_1(**frag_dict, season="00/00")
         fragment.season=str(fragment.when.year)
         #: validation
-        try:
-            int(fragment.home_score)
-            int(fragment.away_score)
-        except (ValueError, TypeError):
-            raise exc.BuildModelException(portal='flashscore', field='scores',
-                                          prototype=str(frag_dict))
+        if not fragment.home_score or not fragment.away_score:
+            raise ValueError("scores")
     except (ValueError, KeyError) as e:
-        log.error(e)
+        if "scores" in e:
+            raise exc.BuildModelException(portal='flashscore', field='scores',
+                                          prototype=str(frag_dict)) from None
+        else:
+            log.exception(e)
+            raise
     except Exception as e:
         log.exception(e)
         raise exc.ChangedPayloadException(portal='flashscore', body=body)
