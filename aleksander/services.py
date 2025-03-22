@@ -37,8 +37,7 @@ class Service(Task):
         with hydra.initialize_config_dir(version_base=configs.VERSION_BASE, config_dir=configs.CONFIG_DIR_PATH):
             use_database: str = hydra.compose(config_name="aleksander").get('db')
         self.db = DbMgr(use_database)
-        redis = RedisCache()
-        self.cluster = ClusterService(redis)
+        self.cluster = ClusterService(RedisCache)
 
 
 @app.task(bind=True)

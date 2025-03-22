@@ -20,14 +20,18 @@ class RedisCache:
         Some REDIS connection utils.
         This will do round-robin of redis instance in the future.
     """
-    _instance: redis.Redis = None
+    _instance: redis.Redis|None = None
 
-    def __init__(self):
-        config: configs.RedisConfig|None = self._configure()
-        self.host = config.cache.host
-        self.port = config.cache.port
+    @classmethod
+    def instance(cls) -> redis.Redis:
+        """Returns instance singleton."""
+        if not cls._instance:
+            cfg: configs.RedisConfig = cls._get_config()
+            cls._instance = redis.Redis(host=cfg.cache.host, port=cfg.cache.port)
+        return cls._instance
 
-    def _configure(self) -> configs.RedisConfig|None:
+    @staticmethod
+    def _get_config() -> configs.RedisConfig:
         """
             Loads configuration from yaml file by hydra.
         """
@@ -37,13 +41,6 @@ class RedisCache:
         if not cfg:
             raise ValueError("Failure of loading configuration for redis.")
         return cfg  # type: ignore
-
-    def instance(self) -> redis.Redis:
-        """Returns instance singleton."""
-        cls = self.__class__
-        if not cls._instance:
-            cls._instance = redis.Redis(host=self.host, port=self.port)
-        return cls._instance
 
 
 class CacheKeysMgr:
@@ -108,15 +105,13 @@ class ClusterService:
         Manager, who share memory between workers,
         so they can inform themselves whether object was processed before.
     """
-    # TODO: Here will be needed CacheKey for it, this logic is not yet standarized.
-    #: For placeholder to real key in the future.
 
-    def __init__(self, cache: RedisCache) -> None:
+    def __init__(self, cache_type: type[RedisCache]) -> None:
         """
             Prepare redis connection, etc.
         """
-        self.cache = cache.instance()
-        self.key_mgr = CacheKeysMgr("sofascore")  # now using only one portal.
+        self.cache = cache_type.instance()
+        self.key_mgr = CacheKeysMgr("sofascore")  # this not influences, cause match_ids are different.
 
     def check_object_processed(self, mid, typename) -> bool:
         """
