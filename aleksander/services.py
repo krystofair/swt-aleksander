@@ -114,6 +114,9 @@ def match_processing(base: Service, response_url, response_body):
                     #: TODO: sign_object_processed in cache in transaction of saving in db.
                     #: For now it works like `commit()` failed then this below instruction wasn't excecute.
                     base.cluster.sign_object_processed(mid, match.typename())
+            else:
+                log.info(f"Match {mid} (portal:'unknown yet') has already processed.")
+                log.info("Checking about stored objects for that event yet.")
             #: Find is there temporary object for me and plan tasks for saving it.
             for m in [models.Statistics, models.Object]:
                 if (base.cluster.get_stored_object(mpid, m)
@@ -128,8 +131,6 @@ def match_processing(base: Service, response_url, response_body):
             return
     except exc.FeatureNotImplemented as i:
         log.info(f"{i.feature}: {i.message}")
-    except exc.MatchAlreadyProcessed as e:
-        log.info(f"Match {e.match_id} (portal:{e.portal}) already processed")
     except DatabaseError as e:
         log.error(f"DatabaseError: {e}")
     except Exception as e:
