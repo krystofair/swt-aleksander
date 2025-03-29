@@ -2,8 +2,10 @@ import logging
 import re
 
 from aleksander import exc
-import  aleksander.processing.flashscore.utils as utils
-from aleksander.processing.flashscore.caching import FootballMatchFragments as FMF 
+import aleksander.processing.flashscore.utils as utils
+from aleksander.processing.flashscore.caching import FootballMatchFragments as FMF
+from aleksander.processing.flashscore import regexes
+
 
 
 log = logging.getLogger(__name__)
@@ -14,8 +16,8 @@ def pick_right_fragment_func(url):
         Returns fragment_parser_func with event_id/object_id in tuple.
     """
     func_regex = [
-        (html_fragment, r"www\.flashscore\.com/match/([0-9a-zA-Z]+)/?$"),
-        (dc_1_fragment, r"feed/dc_1_([0-9a-zA-Z]+)$")
+        (html_fragment, regexes.MATCH_HTML_FRAGMENT_REGEX),
+        (dc_1_fragment, regexes.DC_FRAGMENT_REGEX)
     ]
     for func, regex in func_regex:
         if m := re.search(regex, url):
@@ -51,7 +53,7 @@ def dc_1_fragment(object_portal_id: str, body: str):
         if not fragment.home_score or not fragment.away_score:
             raise ValueError("scores")
     except (ValueError, KeyError) as e:
-        if "scores" in e:
+        if "scores" in str(e):
             raise exc.BuildModelException(portal='flashscore', field='scores',
                                           prototype=str(frag_dict)) from None
         else:

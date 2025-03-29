@@ -13,9 +13,8 @@ from aleksander import exc, configs
 from aleksander.models import *
 from aleksander.processing import reg
 from aleksander.clustering import RedisCache
-from aleksander.utils import dicts as dp
 from .caching import FootballMatchBuilder
-from . import frags, utils
+from . import frags, utils, regexes
 
 import orjson as jsonlib
 import multidict
@@ -23,8 +22,8 @@ import multidict
 log = logging.getLogger("FlashscoreProcessor")
 
 
-@reg(r"www\.flashscore\.com/match/([0-9a-zA-Z]+)/?$", Match)
-@reg(r"feed/dc_1_([0-9a-zA-Z]+)/?$", Match)
+@reg(regexes.MATCH_HTML_FRAGMENT_REGEX, Match)
+@reg(regexes.DC_FRAGMENT_REGEX, Match)
 def match_t(url, body) -> Match:
     """
         This will raise FragmentCached, for inform that all goes successfully.
@@ -52,7 +51,7 @@ def match_t(url, body) -> Match:
         raise
     if fragment:
         log.info("Fragment parsed properly.")
-        builder = FootballMatchBuilder(object_id, RedisCache())
+        builder = FootballMatchBuilder(object_id, RedisCache)
         builder.add(fragment)
         builder.save()
         if builder.check_fragments():
@@ -62,10 +61,10 @@ def match_t(url, body) -> Match:
     raise exc.ChangedPayloadException(portal='flashscore', body=body)
 
 
-@reg(r"feed/df_st_1_([0-9a-zA-Z]+)/?$",  model=Statistics)
+@reg(regexes.STATS_FEED_REGEX,  model=Statistics)
 def stats_t(url, body):
     log.info("start stats_t from flashscore")
-    event_portal_id = re.search(r"feed/df_st_1_([0-9a-zA-Z]+)/?$", url).group(1)
+    event_portal_id = re.search(regexes.STATS_FEED_REGEX, url).group(1)
     stats = list()
     # processed_stats = set()
     parser = FootballStatParser(body)
