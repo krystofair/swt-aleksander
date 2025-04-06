@@ -77,3 +77,4 @@ class MainConfig:
     db: str
     publisher: Publisher
     services: list[ServicesEntry]
+    debug: bool = False
