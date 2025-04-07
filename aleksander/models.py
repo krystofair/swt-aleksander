@@ -54,7 +54,7 @@ class AbstractObject(abc.ABC):
         if not isinstance(dictionary, typing.Mapping):
             raise TypeError(f"Cannot build class by `fromdict` method when type is {dictionary.__class__!r}")
         try:
-            log.info("Try build class {cls.__name__!r} by **dictionary style.")
+            log.info(f"Try build class {cls.__name__!r} by **dictionary style.")
             return cls(**dictionary)
         except:
             log.info("Generic method failed.")
